@@ -1,0 +1,28 @@
+/* 整个 VS Code 工作区的根容器（编辑器 + 面板 + 侧边栏） */
+.monaco-workbench {
+  background-color: var(--vscode-editor-background);
+}
+
+/* 光标旁边的“灯泡提示” Quick Fix 小组件 */
+.lightBulbWidget {
+  transition: top 200ms;
+}
+
+/* 悬停提示框（Hover popup），显示时的渐显动画 */
+.monaco-hover:not(.hidden) {
+  animation: hoverFadeIn 200ms;
+}
+
+@keyframes hoverFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 操作按钮文字（如 Quick Fix 按钮）的颜色过渡动画 */
+.action-label {
+  transition: color 200ms;
+}

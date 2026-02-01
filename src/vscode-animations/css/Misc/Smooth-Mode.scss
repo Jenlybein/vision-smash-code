@@ -1,0 +1,29 @@
+:root {
+  --smooth-windows-duration: /*<Duration>*/ 300ms; /*</Duration>*/
+}
+
+//Selects when not resizing or previewing
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  ) {
+  .monaco-workbench,
+  .split-view-view,
+  .editor-actions,
+  .minimap,
+  .content,
+  .monaco-breadcrumbs,
+  .overflow-guard,
+  .monaco-scrollable-element,
+  .panel,
+  .title {
+    //Narrows down elements by finding inline styling of top, left, width, or height
+    &[style*="top"],
+    &[style*="left"],
+    &[style*="width"],
+    &[style*="height"] {
+      transition-property: top, left, width, height;
+      transition-duration: var(--smooth-windows-duration);
+    }
+  }
+}

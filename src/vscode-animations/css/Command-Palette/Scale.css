@@ -1,0 +1,35 @@
+.quick-input-widget {
+  transform-origin: top;
+  animation: openPopup var(--command-palette-duration);
+}
+
+.quick-input-widget[style*="display: none;"] {
+  display: block !important;
+  transform-origin: top;
+  animation: closePopup var(--command-palette-duration);
+  opacity: 0;
+  transform: scaleY(0);
+  pointer-events: none;
+}
+
+@keyframes openPopup {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes closePopup {
+  from {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}

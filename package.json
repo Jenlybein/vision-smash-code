@@ -1,0 +1,336 @@
+{
+  "name": "vision-smash-code",
+  "displayName": "Vision Smash Code",
+  "publisher": "gentlybeing",
+  "description": "",
+  "type": "module",
+  "version": "0.0.1",
+  "exports": {
+    ".": "./extension.js"
+  },
+  "engines": {
+    "vscode": "^1.108.1"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "visionSmashCode.openSettings",
+        "title": "Vision Smash Code:打开设置"
+      },
+      {
+        "command": "visionSmashCode.generatePath",
+        "title": "Vision Smash Code:生成光标特效"
+      },
+      {
+        "command": "visionSmashCode.removePath",
+        "title": "Vision Smash Code:移除光标特效"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "基本配置",
+        "properties": {
+          "visionSmashCode.cursor.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用光标拖尾动画"
+          }
+        },
+        "visionSmashCode.animations.Enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "启用窗口动效"
+        }
+      },
+      {
+        "title": "光标特效设置",
+        "properties": {
+          "visionSmashCode.cursor.tailColor": {
+            "order": 0,
+            "type": "string",
+            "default": "#FFC0CB",
+            "description": "拖尾颜色 (十六进制)"
+          },
+          "visionSmashCode.cursor.useShadow": {
+            "order": 1,
+            "type": "boolean",
+            "default": true,
+            "description": "辉光开关 (略微影响性能)"
+          },
+          "visionSmashCode.cursor.shadowColor": {
+            "order": 2,
+            "type": "string",
+            "default": "#FFC0CB",
+            "description": "辉光颜色 (十六进制，建议使用拖尾颜色)"
+          },
+          "visionSmashCode.cursor.tailOpacity": {
+            "order": 3,
+            "type": "number",
+            "default": 1,
+            "minimum": 0,
+            "maximum": 1,
+            "description": "拖尾不透明度 (0-1)"
+          },
+          "visionSmashCode.cursor.shadowBlurFactor": {
+            "order": 4,
+            "type": "number",
+            "default": 0.5,
+            "description": "模糊系数 (倍数)"
+          },
+          "visionSmashCode.cursor.animationLength": {
+            "order": 5,
+            "type": "number",
+            "default": 0.125,
+            "description": "标准动画时长 (秒)"
+          },
+          "visionSmashCode.cursor.shortAnimationLength": {
+            "order": 6,
+            "type": "number",
+            "default": 0.05,
+            "description": "短距离位移动画时长 (秒)"
+          },
+          "visionSmashCode.cursor.shortMoveThreshold": {
+            "order": 7,
+            "type": "number",
+            "default": 8,
+            "description": "短距离位移阈值 (像素)"
+          },
+          "visionSmashCode.cursor.rank0TrailFactor": {
+            "order": 8,
+            "type": "number",
+            "default": 1,
+            "description": "最拖尾角点速度因子 (倍数)"
+          },
+          "visionSmashCode.cursor.rank1TrailFactor": {
+            "order": 9,
+            "type": "number",
+            "default": 0.9,
+            "description": "次拖尾角点速度因子 (倍数)"
+          },
+          "visionSmashCode.cursor.rank2TrailFactor": {
+            "order": 10,
+            "type": "number",
+            "default": 0.5,
+            "description": "次领先角点速度因子 (倍数)"
+          },
+          "visionSmashCode.cursor.rank3TrailFactor": {
+            "order": 11,
+            "type": "number",
+            "default": 0.3,
+            "description": "最领先角点速度因子 (倍数)"
+          },
+          "visionSmashCode.cursor.useHardSnap": {
+            "order": 12,
+            "type": "boolean",
+            "default": true,
+            "description": "瞬移开关 (起稳定器的作用)"
+          },
+          "visionSmashCode.cursor.leadingSnapFactor": {
+            "order": 13,
+            "type": "number",
+            "default": 0.1,
+            "description": "瞬移系数 (倍数)"
+          },
+          "visionSmashCode.cursor.leadingSnapThreshold": {
+            "order": 14,
+            "type": "number",
+            "default": 0.5,
+            "minimum": 0,
+            "maximum": 1,
+            "description": "瞬移判定阈值 (0-1)"
+          },
+          "visionSmashCode.cursor.animationResetThreshold": {
+            "order": 15,
+            "type": "number",
+            "default": 0.075,
+            "description": "动画重置阈值 (秒)"
+          },
+          "visionSmashCode.cursor.maxTrailDistanceFactor": {
+            "order": 16,
+            "type": "number",
+            "default": 100,
+            "description": "最大拉伸 (倍数)"
+          },
+          "visionSmashCode.cursor.snapAnimationLength": {
+            "order": 17,
+            "type": "number",
+            "default": 0.02,
+            "description": "瞬移时长 (秒)"
+          },
+          "visionSmashCode.cursor.cursorUpdatePollingRate": {
+            "order": 18,
+            "type": "integer",
+            "default": 100,
+            "minimum": 50,
+            "description": "扫描频率 (毫秒，影响性能，不建议小于100)"
+          },
+          "visionSmashCode.cursor.cursorDisappearDelay": {
+            "order": 19,
+            "type": "integer",
+            "default": 50,
+            "description": "拖尾消失延迟 (毫秒)"
+          },
+          "visionSmashCode.cursor.cursorFadeOutDuration": {
+            "order": 20,
+            "type": "number",
+            "default": 0.075,
+            "description": "拖尾渐隐时长 (秒)"
+          }
+        }
+      },
+      {
+        "title": "窗口动效设置",
+        "properties": {
+          "visionSmashCode.animations.Smooth-Mode": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "使一切**流畅**！是否在所有窗口（侧边栏、分屏等）启用平滑动画。"
+          },
+          "visionSmashCode.animations.Custom-CSS": {
+            "type": "boolean",
+            "default": true,
+            "description": "是否使用自定义 CSS 文件"
+          },
+          "visionSmashCode.animations.Focus-Dimming-Amount": {
+            "type": "number",
+            "default": 50,
+            "maximum": 100,
+            "minimum": 0,
+            "markdownDescription": "当新窗口获得焦点时对 VS Code 某些部分进行暗化的程度，默认：`50%`"
+          },
+          "animations.Focus-Dimming-Mode": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Full Window",
+              "Everything But Editor",
+              "Everything But Terminal",
+              "Everything But Editor and Terminal"
+            ],
+            "default": "None",
+            "markdownDescription": "焦点暗化使用的模式：`None` 完全禁用暗化；`Full Window` 暗化整个窗口；`Everything But Editor` / `Everything But Terminal` / `Everything But Editor and Terminal` 将根据选项排除编辑器、终端或两者。默认：`Full Window`"
+          },
+          "animations.Command-Palette": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Scale",
+              "Slide",
+              "Fade"
+            ],
+            "default": "Scale",
+            "description": "命令面板使用的动画"
+          },
+          "animations.Tabs": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Scale",
+              "Slide",
+              "Flip"
+            ],
+            "default": "Scale",
+            "description": "选项卡使用的动画"
+          },
+          "animations.Active": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Indent",
+              "Scale"
+            ],
+            "default": "Scale",
+            "description": "活动列表项使用的动画"
+          },
+          "animations.Scrolling": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Scale",
+              "Slide",
+              "Fade"
+            ],
+            "default": "Scale",
+            "description": "在滚动时新出现的列表项使用的动画"
+          },
+          "animations.Default-Duration": {
+            "type": "number",
+            "default": 300,
+            "maximum": 10000,
+            "minimum": 0,
+            "markdownDescription": "所有动画的默认时长（毫秒），默认：`300`。**注意：** 这是所有动画的默认时长，你可以在 `Durations` 部分为每个动画单独设置时长。"
+          },
+          "animations.Durations": {
+            "type": "object",
+            "description": "动画时长（毫秒）",
+            "additionalProperties": false,
+            "properties": {
+              "Command-Palette": {
+                "type": "number",
+                "default": 300,
+                "maximum": 10000,
+                "minimum": 0,
+                "markdownDescription": "命令面板动画时长（毫秒），默认：`300`"
+              },
+              "Tabs": {
+                "type": "number",
+                "default": 200,
+                "maximum": 10000,
+                "minimum": 0,
+                "markdownDescription": "标签页动画时长（毫秒），默认：`200`"
+              },
+              "Active": {
+                "type": "number",
+                "default": 200,
+                "maximum": 10000,
+                "minimum": 0,
+                "markdownDescription": "活动项动画时长（毫秒），默认：`200`"
+              },
+              "Scrolling": {
+                "type": "number",
+                "default": 200,
+                "maximum": 10000,
+                "minimum": 0,
+                "markdownDescription": "滚动时新出现列表项的动画时长（毫秒），默认：`200`"
+              },
+              "Smooth-Mode": {
+                "type": "number",
+                "default": 200,
+                "maximum": 10000,
+                "minimum": 0,
+                "markdownDescription": "平滑模式动画时长（毫秒），默认：`200`"
+              },
+              "Focus-Dimming": {
+                "type": "number",
+                "default": 200,
+                "maximum": 10000,
+                "minimum": 0,
+                "markdownDescription": "窗口获得焦点时暗化动画时长（毫秒），默认：`200`"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.108.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "eslint": "^9.39.2",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

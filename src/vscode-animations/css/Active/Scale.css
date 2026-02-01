@@ -1,0 +1,11 @@
+.monaco-list-row:not(.explorer-folders-view .monaco-list-row, .code-cell-row) {
+  transition: scale var(--active-duration);
+  scale: 0.98;
+}
+
+.monaco-list-row:not(
+    .explorer-folders-view .monaco-list-row,
+    .code-cell-row
+  ).focused {
+  scale: 1;
+}

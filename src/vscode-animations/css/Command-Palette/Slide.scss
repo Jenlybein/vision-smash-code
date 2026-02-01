@@ -1,0 +1,37 @@
+@use "_Duration";
+
+.quick-input-widget {
+  transform-origin: top;
+  animation: openPopup var(--command-palette-duration);
+
+  &[style*="display: none;"] {
+    display: block !important;
+    transform-origin: top;
+    animation: closePopup var(--command-palette-duration);
+    opacity: 0;
+    transform: scaleY(0);
+    pointer-events: none;
+  }
+}
+
+@keyframes openPopup {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes closePopup {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}

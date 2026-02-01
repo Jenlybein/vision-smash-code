@@ -1,0 +1,24 @@
+@use "_Duration";
+@use "_SmoothTabs";
+
+.tabs-container > .tab.newTab {
+  transform-origin: left;
+  animation: openTab var(--tabs-duration);
+}
+
+.tabs-container > .tab {
+  z-index: 2;
+}
+
+@keyframes openTab {
+  from {
+    z-index: 1;
+    opacity: 0;
+    transform: translateX(-50%);
+  }
+  to {
+    z-index: 1;
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

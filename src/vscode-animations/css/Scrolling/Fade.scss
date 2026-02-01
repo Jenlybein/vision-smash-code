@@ -1,0 +1,10 @@
+@use "_Animate";
+
+@keyframes scrollingAnimation {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
