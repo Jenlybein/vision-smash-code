@@ -1,9 +1,9 @@
 /* __AUTO_CONFIG_START__ */
 const config = {
-  "tailColor": "#1db100",
+  "tailColor": "#FFC0CB",
   "tailOpacity": 1,
   "useShadow": true,
-  "shadowColor": "#1db100",
+  "shadowColor": "#FFC0CB",
   "shadowBlurFactor": 0.5,
   "cursorUpdatePollingRate": 100,
   "cursorDisappearDelay": 50,

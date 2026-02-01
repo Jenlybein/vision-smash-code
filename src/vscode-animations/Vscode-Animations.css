@@ -1,0 +1,343 @@
+/* 整个 VS Code 工作区的根容器（编辑器 + 面板 + 侧边栏） */
+.monaco-workbench {
+  background-color: var(--vscode-editor-background);
+}
+
+/* 光标旁边的“灯泡提示” Quick Fix 小组件 */
+.lightBulbWidget {
+  transition: top 200ms;
+}
+
+/* 悬停提示框（Hover popup），显示时的渐显动画 */
+.monaco-hover:not(.hidden) {
+  animation: hoverFadeIn 200ms;
+}
+
+@keyframes hoverFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 操作按钮文字（如 Quick Fix 按钮）的颜色过渡动画 */
+.action-label {
+  transition: color 200ms;
+}
+/* This file is for custom css animations, this file should be left empty so it compiles to an empty css file */
+:root {
+  --command-palette-duration: /*<Duration>*/ 300ms; /*</Duration>*/
+}
+.quick-input-widget {
+  transform-origin: top;
+  animation: openPopup var(--command-palette-duration);
+}
+
+.quick-input-widget[style*="display: none;"] {
+  display: block !important;
+  transform-origin: top;
+  animation: closePopup var(--command-palette-duration);
+  opacity: 0;
+  transform: scaleY(0);
+  pointer-events: none;
+}
+
+@keyframes openPopup {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes closePopup {
+  from {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}
+:root {
+  --tabs-duration: /*<Duration>*/ 300ms; /*</Duration>*/
+}
+.tabs-container > .tab.newTab {
+  transform-origin: left;
+  animation: openTab var(--tabs-duration);
+}
+
+.tabs-container > .tab {
+  z-index: 2;
+}
+
+@keyframes openTab {
+  from {
+    z-index: 1;
+    opacity: 0;
+    transform: translateX(-50%) scale(0);
+  }
+  to {
+    z-index: 1;
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+:root {
+  --active-duration: /*<Duration>*/ 300ms; /*</Duration>*/
+}
+
+.monaco-list-row:not(.explorer-folders-view .monaco-list-row, .code-cell-row) {
+  transition: transform var(--active-duration);
+}
+
+.monaco-list-row:not(
+    .explorer-folders-view .monaco-list-row,
+    .code-cell-row
+  ).focused {
+  transform: translateX(0.5rem);
+}
+:root {
+  --scrolling-duration: /*<Duration>*/ 300ms; /*</Duration>*/
+}
+.monaco-list-row:not(
+  .explorer-folders-view .monaco-list-row,
+  .outline-pane .monaco-list-row,
+  .monaco-editor .overflowingContentWidgets .monaco-list-row,
+  .action-widget .monaco-list-row,
+  .interactive-session .monaco-list-row
+) {
+  animation: scrollingAnimation var(--scrolling-duration);
+}
+
+.quick-input-widget .monaco-list-rows[style*="top: 0px;"] .monaco-list-row,
+.settings-tree-container
+  .monaco-list-rows[style*="top: 0px;"]
+  .monaco-list-row {
+  animation-duration: 0ms;
+}
+@keyframes scrollingAnimation {
+  from {
+    opacity: 0.5;
+    transform: translateX(-50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+:root {
+  --smooth-windows-duration: 300ms
+}
+
+/* Selects when not resizing or previewing */
+/* Narrows down elements by finding inline styling of top, left, width, or height */
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-workbench[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .split-view-view[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .editor-actions[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .minimap[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .content[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-breadcrumbs[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .overflow-guard[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-scrollable-element[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .panel[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .title[style*="top"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-workbench[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .split-view-view[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .editor-actions[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .minimap[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .content[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-breadcrumbs[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .overflow-guard[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-scrollable-element[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .panel[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .title[style*="left"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-workbench[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .split-view-view[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .editor-actions[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .minimap[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .content[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-breadcrumbs[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .overflow-guard[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-scrollable-element[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .panel[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .title[style*="width"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-workbench[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .split-view-view[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .editor-actions[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .minimap[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .content[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-breadcrumbs[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .overflow-guard[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .monaco-scrollable-element[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .panel[style*="height"],
+.monaco-workbench:not(
+    .monaco-workbench:has(.monaco-sash.active),
+    .monaco-workbench:has(iframe)
+  )
+  .title[style*="height"] {
+  transition-property: top, left, width, height;
+  transition-duration: var(--smooth-windows-duration);
+}

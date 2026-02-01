@@ -23,14 +23,6 @@
       {
         "command": "visionSmashCode.openSettings",
         "title": "Vision Smash Code:打开设置"
-      },
-      {
-        "command": "visionSmashCode.generatePath",
-        "title": "Vision Smash Code:生成光标特效"
-      },
-      {
-        "command": "visionSmashCode.removePath",
-        "title": "Vision Smash Code:移除光标特效"
       }
     ],
     "configuration": [
@@ -41,12 +33,12 @@
             "type": "boolean",
             "default": true,
             "description": "启用光标拖尾动画"
+          },
+          "visionSmashCode.animations.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用窗口动效"
           }
-        },
-        "visionSmashCode.animations.Enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "启用窗口动效"
         }
       },
       {
@@ -198,26 +190,7 @@
             "default": true,
             "description": "是否使用自定义 CSS 文件"
           },
-          "visionSmashCode.animations.Focus-Dimming-Amount": {
-            "type": "number",
-            "default": 50,
-            "maximum": 100,
-            "minimum": 0,
-            "markdownDescription": "当新窗口获得焦点时对 VS Code 某些部分进行暗化的程度，默认：`50%`"
-          },
-          "animations.Focus-Dimming-Mode": {
-            "type": "string",
-            "enum": [
-              "None",
-              "Full Window",
-              "Everything But Editor",
-              "Everything But Terminal",
-              "Everything But Editor and Terminal"
-            ],
-            "default": "None",
-            "markdownDescription": "焦点暗化使用的模式：`None` 完全禁用暗化；`Full Window` 暗化整个窗口；`Everything But Editor` / `Everything But Terminal` / `Everything But Editor and Terminal` 将根据选项排除编辑器、终端或两者。默认：`Full Window`"
-          },
-          "animations.Command-Palette": {
+          "visionSmashCode.animations.Command-Palette": {
             "type": "string",
             "enum": [
               "None",
@@ -228,7 +201,7 @@
             "default": "Scale",
             "description": "命令面板使用的动画"
           },
-          "animations.Tabs": {
+          "visionSmashCode.animations.Tabs": {
             "type": "string",
             "enum": [
               "None",
@@ -239,17 +212,17 @@
             "default": "Scale",
             "description": "选项卡使用的动画"
           },
-          "animations.Active": {
+          "visionSmashCode.animations.Active": {
             "type": "string",
             "enum": [
               "None",
               "Indent",
               "Scale"
             ],
-            "default": "Scale",
+            "default": "Indent",
             "description": "活动列表项使用的动画"
           },
-          "animations.Scrolling": {
+          "visionSmashCode.animations.Scrolling": {
             "type": "string",
             "enum": [
               "None",
@@ -257,17 +230,17 @@
               "Slide",
               "Fade"
             ],
-            "default": "Scale",
+            "default": "Slide",
             "description": "在滚动时新出现的列表项使用的动画"
           },
-          "animations.Default-Duration": {
+          "visionSmashCode.animations.Default-Duration": {
             "type": "number",
             "default": 300,
             "maximum": 10000,
             "minimum": 0,
             "markdownDescription": "所有动画的默认时长（毫秒），默认：`300`。**注意：** 这是所有动画的默认时长，你可以在 `Durations` 部分为每个动画单独设置时长。"
           },
-          "animations.Durations": {
+          "visionSmashCode.animations.Durations": {
             "type": "object",
             "description": "动画时长（毫秒）",
             "additionalProperties": false,

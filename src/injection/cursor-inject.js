@@ -72,6 +72,6 @@ export function InjectConfigToFile(config, targetFilePath) {
     updatedCode = `${configBlock}\n\n${originalCode}`;
   }
 
-  // 原子写入：先写入临时文件，再重命名覆盖，防止在写入过程中损坏文件
+  // 写入文件
   fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
 }
