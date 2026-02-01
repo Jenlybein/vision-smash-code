@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as vscode from "vscode";
 
-export async function getUpdatedCSS(context,cssRoot){
+export async function getUpdatedCSS(context, cssRoot) {
   let css = "";
   // 加入默认过渡效果
   css += await getCSSFile("Default-Transitions.css", cssRoot);
@@ -16,7 +16,7 @@ export async function getUpdatedCSS(context,cssRoot){
     if (setting !== "None") {
       css += updateDuration(
         await getCSSFile(`${key}/${setting}.css`, cssRoot),
-        key
+        key,
       );
     }
   }
@@ -25,7 +25,7 @@ export async function getUpdatedCSS(context,cssRoot){
    * Adds all boolean settings to the css string
    */
   for (const key of ["Smooth-Mode"]) {
-    if (config.get(key) as boolean) {
+    if (config.get(key)) {
       css += updateDuration(await getCSSFile(`Misc/${key}.css`, cssRoot), key);
     }
   }
@@ -36,7 +36,7 @@ export async function getUpdatedCSS(context,cssRoot){
   return css;
 }
 
-async function getCSSFile(cssFilePath,cssRoot){
+async function getCSSFile(cssFilePath, cssRoot) {
   let css = "";
   try {
     await vscode.workspace.fs
@@ -56,7 +56,7 @@ async function getCSSFile(cssFilePath,cssRoot){
  */
 export function updateDuration(css, key) {
   const config = vscode.workspace.getConfiguration("animations"); //Extension settings
-  let duration = (config.get("Durations"))[key]; //The duration of the animation
+  let duration = config.get("Durations")[key]; //The duration of the animation
 
   if (!duration || parseInt(`${duration}`) > 10000) {
     duration = config.get("Default-Duration");
@@ -67,7 +67,7 @@ export function updateDuration(css, key) {
 
   css = css.replace(
     /\/\*<Duration>\*\/.*\/\*<\/Duration>\*\//g,
-    `${duration}ms`
+    `${duration}ms`,
   );
 
   return css;
