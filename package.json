@@ -22,7 +22,7 @@
     "commands": [
       {
         "command": "visionSmashCode.openSettings",
-        "title": "Vision Smash Code:打开设置"
+        "title": "Vision Smash Code: 打开设置"
       }
     ],
     "configuration": [
