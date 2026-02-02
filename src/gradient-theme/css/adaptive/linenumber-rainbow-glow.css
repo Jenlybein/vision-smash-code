@@ -10,8 +10,7 @@
 /* 设置活动行号的颜色和发光效果 */
 div.active-line-number {
   --vscode-editorLineNumber-activeForeground: #fff !important;
-  text-shadow: 0 0 5px
-    linear-gradient(to right, #eacd61, #ea618e, #3cec85, #61afea) !important;
+  text-shadow: 0 0 5px linear-gradient(to right, #eacd61, #ea618e, #3cec85, #61afea) !important;
   font-weight: 700;
   -webkit-text-fill-color: transparent;
   -webkit-background-clip: text;
