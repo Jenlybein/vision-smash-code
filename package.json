@@ -2,18 +2,41 @@
   "name": "vision-smash-code",
   "displayName": "Vision Smash Code",
   "publisher": "gentlybeing",
-  "description": "",
+  "description": "Add cursor trail effects, window animations, and gradient theme effects to VS Code, making your coding experience more vivid and interesting!",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Jenlybein/vision-smash-code"
+  },
   "type": "module",
   "version": "0.0.1",
+  "keywords": [
+    "cursor",
+    "animation",
+    "gradient",
+    "theme",
+    "visual",
+    "effects",
+    "cursor-trail",
+    "ui-enhancement",
+    "neovide",
+    "smooth"
+  ],
+  "homepage": "https://github.com/Jenlybein/vision-smash-code",
+  "bugs": {
+    "url": "https://github.com/Jenlybein/vision-smash-code/issues"
+  },
+  "icon": "images/icon.png",
+  "categories": [
+    "Other",
+    "Themes"
+  ],
   "exports": {
     ".": "./extension.js"
   },
+  "license": "GPL-3.0-only",
   "engines": {
-    "vscode": "^1.108.1"
+    "vscode": "^1.80.1"
   },
-  "categories": [
-    "Other"
-  ],
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -22,7 +45,7 @@
     "commands": [
       {
         "command": "visionSmashCode.openSettings",
-        "title": "Vision Smash Code: 打开设置"
+        "title": "Vision Smash Code: OpenSettings"
       }
     ],
     "configuration": [
