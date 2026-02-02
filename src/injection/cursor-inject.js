@@ -1,7 +1,25 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import fs from "fs";
+import * as util from "../utils/enter.js";
 
-export function GetCursorConfig() {
+// 代码块标记
+const blockStart = "/* __AUTO_CONFIG_START__ */";
+const blockEnd = "/* __AUTO_CONFIG_END__ */";
+
+// 光标特效加载文件路径
+let targetFilePath = "";
+export function init(context) {
+  targetFilePath = path.join(
+    context.extensionPath,
+    "src",
+    "neovide-cursor",
+    "neovide-cursor.js",
+  );
+}
+
+// 获取光标特效配置
+function getCursorConfig() {
   const vsConfig = vscode.workspace.getConfiguration("visionSmashCode.cursor");
 
   // 动态计算用于 CSS transition 的时间，避免硬编码
@@ -43,16 +61,15 @@ export function GetCursorConfig() {
   };
 }
 
-export function InjectConfigToFile(config, targetFilePath) {
+// 更新配置到目标文件
+export async function InjectConfigToFile() {
   if (!fs.existsSync(targetFilePath)) {
     throw new Error(`没找到目标文件: ${targetFilePath}`);
   }
   const originalCode = fs.readFileSync(targetFilePath, "utf8");
 
-  const blockStart = "/* __AUTO_CONFIG_START__ */";
-  const blockEnd = "/* __AUTO_CONFIG_END__ */";
-
   // 生成配置代码块（格式化 JSON，保持可读性）
+  const config = getCursorConfig();
   const configText = JSON.stringify(config, null, 2);
   const configBlock = `${blockStart}\nconst config = ${configText};\n${blockEnd}`;
 
@@ -74,4 +91,16 @@ export function InjectConfigToFile(config, targetFilePath) {
 
   // 写入文件
   fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
+}
+
+// 激活扩展
+export async function Activate() {
+  const enable = vscode.workspace
+    .getConfiguration("visionSmashCode.cursor")
+    .get("enabled");
+  if (enable) {
+    await util.GeneratePathUtils(targetFilePath, "光标特效");
+  } else {
+    await util.RemovePathUtils(targetFilePath);
+  }
 }

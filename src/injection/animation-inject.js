@@ -1,8 +1,23 @@
 import * as fs from "fs";
 import * as vscode from "vscode";
 import * as path from "path";
+import * as util from "../utils/enter.js";
 
-export async function GetUpdatedCSS(cssRoot) {
+// 窗口动效加载文件路径
+let targetFilePath = "";
+let cssRoot = "";
+export function init(context) {
+  cssRoot = path.join(context.extensionPath, "src", "vscode-animations");
+  targetFilePath = path.join(cssRoot, "vscode-animations.css");
+}
+
+// 读取指定 CSS 文件内容
+async function getCSSFile(cssFilePath, cssRoot) {
+  const filePath = path.join(cssRoot, cssFilePath);
+  return fs.readFileSync(filePath, "utf8");
+}
+
+export async function GetUpdatedCSS() {
   let css = "";
   // 加入默认过渡效果
   css += await getCSSFile("Default-Transitions.css", cssRoot);
@@ -37,25 +52,8 @@ export async function GetUpdatedCSS(cssRoot) {
     }
   }
 
-  // 删除换行符
-  // css = css.replace(/\n/g, "");
-
   // 写入文件
-  const targetFilePath = path.join(cssRoot, "Vscode-Animations.css");
   fs.writeFileSync(targetFilePath, css, "utf-8");
-}
-
-async function getCSSFile(cssFilePath, cssRoot) {
-  let css = "";
-  try {
-    const filePath = path.join(cssRoot, cssFilePath);
-    await vscode.workspace.fs
-      .readFile(vscode.Uri.file(filePath))
-      .then((data) => (css += data.toString()));
-  } catch (error) {
-    console.error("Error reading css file", error);
-  }
-  return css;
 }
 
 /**
@@ -68,7 +66,7 @@ export function updateDuration(css, key) {
   const config = vscode.workspace.getConfiguration(
     "visionSmashCode.animations",
   );
-  let duration = config.get("Durations")[key]; //The duration of the animation
+  let duration = config.get("Durations")[key];
 
   if (!duration || parseInt(`${duration}`) > 10000) {
     duration = config.get("Default-Duration");
@@ -83,4 +81,15 @@ export function updateDuration(css, key) {
   );
 
   return css;
+}
+
+export async function Activate() {
+  const enable = vscode.workspace
+    .getConfiguration("visionSmashCode.animations")
+    .get("enabled");
+  if (enable) {
+    await util.GeneratePathUtils(targetFilePath, "窗口动效");
+  } else {
+    await util.RemovePathUtils(targetFilePath);
+  }
 }

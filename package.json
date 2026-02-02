@@ -183,7 +183,7 @@
           "visionSmashCode.animations.Smooth-Mode": {
             "type": "boolean",
             "default": true,
-            "markdownDescription": "使一切**流畅**！是否在所有窗口（侧边栏、分屏等）启用平滑动画。"
+            "markdownDescription": "是否在所有窗口（侧边栏、分屏等）启用平滑动画（性能消耗较大）。"
           },
           "visionSmashCode.animations.Custom-CSS": {
             "type": "boolean",
