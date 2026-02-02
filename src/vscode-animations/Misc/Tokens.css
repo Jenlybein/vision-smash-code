@@ -1,0 +1,19 @@
+/* 先给所有 mtk 元素添加过渡动画（移入移出都顺滑） */
+:not(.cursor)[class^="mtk"] {
+  /* 新增：解决核心问题 - 改为行内块元素，支持 transform/box-shadow */
+  display: inline-block !important;
+  /* 新增：防止元素错位，保持原有布局 */
+  vertical-align: baseline !important;
+  /* 原有：过渡动画，让悬浮/移出效果更顺滑（关键） */
+  transition: all 0.1s ease-in-out !important;
+  /* 原有：防止浮起时遮挡其他元素，保留元素原始占位 */
+  transform-origin: left center !important;
+}
+
+:not(.cursor)[class^="mtk"]:hover {
+  transform: translateY(-1px) !important;
+
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.15),
+    0 0 0 1px var(--vscode-border) !important;
+}

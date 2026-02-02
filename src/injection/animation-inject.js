@@ -52,6 +52,12 @@ export async function GetUpdatedCSS() {
     }
   }
 
+  for (const key of ["Tokens"]) {
+    if (config.get(key)) {
+      css += await getCSSFile(`Misc/${key}.css`, cssRoot);
+    }
+  }
+
   // 写入文件
   fs.writeFileSync(targetFilePath, css, "utf-8");
 }
@@ -89,7 +95,7 @@ export async function Activate() {
     .get("enabled");
   if (enable) {
     await util.GeneratePathUtils(targetFilePath, "窗口动效");
-  } else {
+  } else if (enable === false) {
     await util.RemovePathUtils(targetFilePath);
   }
 }

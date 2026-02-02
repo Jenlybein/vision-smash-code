@@ -100,7 +100,7 @@ export async function Activate() {
     .get("enabled");
   if (enable) {
     await util.GeneratePathUtils(targetFilePath, "光标特效");
-  } else {
+  } else if (enable === false) {
     await util.RemovePathUtils(targetFilePath);
   }
 }

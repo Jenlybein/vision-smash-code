@@ -31,13 +31,18 @@
         "properties": {
           "visionSmashCode.cursor.enabled": {
             "type": "boolean",
-            "default": true,
+            "default": false,
             "description": "启用光标拖尾动画"
           },
           "visionSmashCode.animations.enabled": {
             "type": "boolean",
-            "default": true,
+            "default": false,
             "description": "启用窗口动效"
+          },
+          "visionSmashCode.gradient.enabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "启用主题渐变效果"
           }
         }
       },
@@ -178,19 +183,22 @@
         }
       },
       {
-        "title": "窗口动效设置",
+        "title": "调整窗口时的动效设置",
         "properties": {
           "visionSmashCode.animations.Smooth-Mode": {
+            "order": 0,
             "type": "boolean",
-            "default": true,
-            "markdownDescription": "是否在所有窗口（侧边栏、分屏等）启用平滑动画（性能消耗较大）。"
+            "default": false,
+            "markdownDescription": "是否让所有窗口（侧边栏、分屏等）在调整窗口时启用平滑动画（性能消耗较大）。"
           },
-          "visionSmashCode.animations.Custom-CSS": {
+          "visionSmashCode.animations.Tokens": {
+            "order": 1,
             "type": "boolean",
-            "default": true,
-            "description": "是否使用自定义 CSS 文件"
+            "default": false,
+            "description": "鼠标悬置单词上时单词浮动"
           },
           "visionSmashCode.animations.Command-Palette": {
+            "order": 2,
             "type": "string",
             "enum": [
               "None",
@@ -199,9 +207,10 @@
               "Fade"
             ],
             "default": "Scale",
-            "description": "命令面板使用的动画"
+            "description": "命令面板(Shift+P)使用的动画"
           },
           "visionSmashCode.animations.Tabs": {
+            "order": 3,
             "type": "string",
             "enum": [
               "None",
@@ -213,6 +222,7 @@
             "description": "选项卡使用的动画"
           },
           "visionSmashCode.animations.Active": {
+            "order": 4,
             "type": "string",
             "enum": [
               "None",
@@ -220,9 +230,10 @@
               "Scale"
             ],
             "default": "Indent",
-            "description": "活动列表项使用的动画"
+            "description": "选中列表项时的动画"
           },
           "visionSmashCode.animations.Scrolling": {
+            "order": 5,
             "type": "string",
             "enum": [
               "None",
@@ -234,6 +245,7 @@
             "description": "在滚动时新出现的列表项使用的动画"
           },
           "visionSmashCode.animations.Default-Duration": {
+            "order": 6,
             "type": "number",
             "default": 300,
             "maximum": 10000,
@@ -241,6 +253,7 @@
             "markdownDescription": "所有动画的默认时长（毫秒），默认：`300`。**注意：** 这是所有动画的默认时长，你可以在 `Durations` 部分为每个动画单独设置时长。"
           },
           "visionSmashCode.animations.Durations": {
+            "order": 7,
             "type": "object",
             "description": "动画时长（毫秒）",
             "additionalProperties": false,
@@ -279,15 +292,59 @@
                 "maximum": 10000,
                 "minimum": 0,
                 "markdownDescription": "平滑模式动画时长（毫秒），默认：`200`"
-              },
-              "Focus-Dimming": {
-                "type": "number",
-                "default": 200,
-                "maximum": 10000,
-                "minimum": 0,
-                "markdownDescription": "窗口获得焦点时暗化动画时长（毫秒），默认：`200`"
               }
             }
+          },
+          "visionSmashCode.animations.Custom-CSS": {
+            "order": 8,
+            "type": "boolean",
+            "default": true,
+            "description": "是否使用自定义 CSS 文件"
+          }
+        }
+      },
+      {
+        "title": "主题增强设置",
+        "properties": {
+          "visionSmashCode.gradient.editor-hover": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用编辑器悬停背景毛玻璃效果"
+          },
+          "visionSmashCode.gradient.git-num-icon": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用 Git 变更数字图标渐变效果"
+          },
+          "visionSmashCode.gradient.linenumber-rainbow-glow": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用行号彩虹辉光效果"
+          },
+          "visionSmashCode.gradient.quick-input": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用快速输入框渐变效果"
+          },
+          "visionSmashCode.gradient.text-glowing": {
+            "type": "boolean",
+            "default": false,
+            "description": "启用文本发光效果"
+          },
+          "visionSmashCode.gradient.text-gradient": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用文本微弱渐变效果"
+          },
+          "visionSmashCode.gradient.horizontal": {
+            "type": "boolean",
+            "default": false,
+            "description": "启用水平拖动栏渐变效果(存在BUG)"
+          },
+          "visionSmashCode.gradient.top-active-tab": {
+            "type": "boolean",
+            "default": true,
+            "description": "启用顶部活动标签页渐变效果"
           }
         }
       }

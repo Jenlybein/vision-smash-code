@@ -1,0 +1,42 @@
+/* 选中标签栏上边框 */
+.tab.tab-actions-right.sizing-fit.has-icon.tab-border-top.active {
+  --tab-border-top-color: transparent !important;
+  position: relative;
+}
+
+.tab.tab-actions-right.sizing-fit.has-icon.tab-border-top.active:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  z-index: 1;
+  background-image: linear-gradient(
+    to right,
+    #eacd61,
+    #ea618e,
+    #3cec85,
+    #61afea
+  );
+  animation: tabHueShift 3s infinite linear;
+  background-size: 200%;
+}
+
+@keyframes tabBorderTopMoveGradient {
+  from {
+    background-position: 0%;
+  }
+  to {
+    background-position: 100%;
+  }
+}
+
+@keyframes tabHueShift {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}

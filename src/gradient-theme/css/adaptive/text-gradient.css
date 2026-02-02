@@ -1,0 +1,29 @@
+/* 字体微弱渐变效果 */
+:not(.cursor)[class^="mtk"] {
+  /* text-shadow: 0 0 1px currentColor !important; */
+  font-weight: 550;
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  /* background-size: 200%; */
+  background-image: linear-gradient(
+    to right,
+    currentColor,
+    currentColor,
+    color-mix(in oklab, currentColor, #000 15%),
+    currentColor,
+    currentColor,
+    color-mix(in oklab, currentColor, #000 15%),
+    currentColor,
+    currentColor
+  );
+  /* animation: tabBorderTopMoveGradient 2s infinite alternate; */
+}
+
+@keyframes tabBorderTopMoveGradient {
+  from {
+    background-position: 0%;
+  }
+  to {
+    background-position: 100%;
+  }
+}

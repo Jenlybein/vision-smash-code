@@ -27,9 +27,7 @@ const config = {
 };
 /* __AUTO_CONFIG_END__ */
 
-// ====================================================================
-// SECTION 2: 全局状态追踪 (Global State Tracking)
-// ====================================================================
+// === SECTION 2: 全局状态追踪 (Global State Tracking) ===
 
 /**
  * globalCursorState 对象
@@ -44,9 +42,7 @@ const globalCursorState = {
   lastUpdated: 0, // 最后更新时间戳
 };
 
-// ====================================================================
-// SECTION 3: 基础工具函数 (Utility Functions)
-// ====================================================================
+// === SECTION 3: 基础工具函数 (Utility Functions) ===
 
 /**
  * resolveColor 函数: 将 CSS 格式的 Hex 颜色转为 RGBA 分量对象
@@ -91,9 +87,7 @@ const cursorRelativeCorners = [
   { x: -0.5, y: 0.5 }, // 左下 (Bottom-Left)
 ];
 
-// ====================================================================
-// SECTION 4: 阻尼弹簧物理模型 (Damped Spring Animation)
-// ====================================================================
+// === SECTION 4: 阻尼弹簧物理模型 (Damped Spring Animation) ===
 
 /**
  * DampedSpringAnimation 类: 模拟受阻尼限制的物体运动
@@ -133,9 +127,7 @@ class DampedSpringAnimation {
   }
 }
 
-// ====================================================================
-// SECTION 5: 单个角点控制 (Corner Control)
-// ====================================================================
+// === SECTION 5: 单个角点控制 (Corner Control) ===
 
 /**
  * Corner 类: 管理光标的每一个独立角点
@@ -257,9 +249,7 @@ class Corner {
   }
 }
 
-// ====================================================================
-// SECTION 6: 单个光标实例创建器 (Cursor Instance Creator)
-// ====================================================================
+// === SECTION 6: 单个光标实例创建器 (Cursor Instance Creator) ===
 
 /**
  * createNeovideCursor 工厂函数: 负责生成并管理一个完整的光标渲染逻辑
@@ -403,9 +393,7 @@ const createNeovideCursor = ({ canvas }) => {
   };
 };
 
-// ====================================================================
-// SECTION 7: 全局光标管理器 (Global Cursor Manager)
-// ====================================================================
+// === SECTION 7: 全局光标管理器 (Global Cursor Manager) ===
 
 /**
  * GlobalCursorManager 类: 系统的控制塔

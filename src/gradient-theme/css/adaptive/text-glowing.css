@@ -1,0 +1,4 @@
+/* 字体发光 */
+:not(.cursor)[class^="mtk"] {
+  text-shadow: 0 0 5px currentColor !important;
+}

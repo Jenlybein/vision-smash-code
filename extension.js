@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import * as cursor from "./src/injection/cursor-inject.js";
 import * as animation from "./src/injection/animation-inject.js";
+import * as gradient from "./src/injection/gradient-inject.js";
 
 function activate(context) {
   console.log("[Vision Smash Code] Extension is now active!");
@@ -10,6 +11,7 @@ function activate(context) {
   // 获取扩展当前所处路径
   cursor.init(context);
   animation.init(context);
+  gradient.init(context);
 
   // 监听配置变更
   const configWatcher = vscode.workspace.onDidChangeConfiguration(async (e) => {
@@ -21,6 +23,10 @@ function activate(context) {
       // 窗口动效配置改变，重新注入配置
       await animation.GetUpdatedCSS();
     }
+    if (e.affectsConfiguration("visionSmashCode.gradient")) {
+      // 渐变配置改变，重新注入配置
+      await gradient.InjectConfigToFile();
+    }
     // 开关光标特效
     if (e.affectsConfiguration("visionSmashCode.cursor.enabled")) {
       await cursor.Activate();
@@ -29,6 +35,11 @@ function activate(context) {
     if (e.affectsConfiguration("visionSmashCode.animations.enabled")) {
       await animation.Activate();
     }
+    // 开关主题渐变效果
+    if (e.affectsConfiguration("visionSmashCode.gradient.enabled")) {
+      await gradient.Activate();
+    }
+    // 整体配置变更，提示用户重载
     if (e.affectsConfiguration("visionSmashCode")) {
       vscode.window.showInformationMessage(
         `效果修改成功！点击出现的弹窗确认进行重载`,

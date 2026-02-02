@@ -1,0 +1,11 @@
+/* git 待提交数量徽章样式 */
+.activitybar
+  > .content
+  :not(.monaco-menu)
+  > .monaco-action-bar
+  .badge
+  .badge-content {
+  background-image: linear-gradient(45deg, #ff61d2, #ffa5a4);
+  border-width: 0 !important;
+  color: rgb(70 70 70) !important;
+}

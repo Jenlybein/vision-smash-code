@@ -1,0 +1,5 @@
+/* 设置编辑器悬浮提示框样式 */
+div.monaco-hover {
+  --vscode-editorHoverWidget-background: rgba(38, 48, 66, 0.6) !important;
+  backdrop-filter: blur(6px) brightness(140%) !important;
+}
