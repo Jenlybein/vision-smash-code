@@ -3,6 +3,8 @@
 [![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.80.1-blue)](https://code.visualstudio.com/)
 [![License](https://img.shields.io/badge/license-GPL-green.svg)](LICENSE)
 
+English | [中文文档](https://github.com/Jenlybein/vision-smash-code/blob/main/README-zh.md)
+
 A visual enhancement extension for VS Code that brings your coding experience to life! Features cursor trail effects, smooth window animations, and beautiful gradient theme effects.
 
 ## 📖 How to Use
@@ -16,11 +18,11 @@ A visual enhancement extension for VS Code that brings your coding experience to
    - Window animations
    - Theme gradient effects
 
-| Configuration | Type | Default | Description |
-| ------------- | ---- | ------- | ----------- |
-| `visionSmashCode.cursor.enabled` | boolean | `false` | Enable cursor trail animation |
-| `visionSmashCode.animations.enabled` | boolean | `false` | Enable window animations |
-| `visionSmashCode.gradient.enabled` | boolean | `false` | Enable theme gradient effects |
+| Configuration                          | Type    | Default   | Description                   |
+| -------------------------------------- | ------- | --------- | ----------------------------- |
+| `visionSmashCode.cursor.enabled`     | boolean | `false` | Enable cursor trail animation |
+| `visionSmashCode.animations.enabled` | boolean | `false` | Enable window animations      |
+| `visionSmashCode.gradient.enabled`   | boolean | `false` | Enable theme gradient effects |
 
 ### Apply Changes
 
