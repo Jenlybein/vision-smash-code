@@ -1,7 +1,6 @@
 ﻿# Vision Smash Code 🎨
 
-[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.80.1-blue)](https://code.visualstudio.com/)
-[![License](https://img.shields.io/badge/license-GPL-green.svg)](LICENSE)
+[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.80.1-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
 
 一款为 VS Code 打造的视觉增强扩展，为你的编码体验注入活力！提供光标拖尾特效、窗口平滑动画和精美的渐变主题效果。
 
@@ -28,7 +27,53 @@
 
 修改配置后，扩展会自动提示你重载 VS Code 以应用更改。点击插件 `Custom CSS and JS Loader` 弹窗的确认按钮即可。
 
+![restart](./images/restart.png)
+
 ## ✨ 功能特性
+
+### 🌈 渐变主题增强
+
+- 顶部活动标签页渐变
+
+  ![topactivate](./images/topactivate.gif)
+
+- 行号彩虹辉光效果
+
+  ![linenumber](./images/linenumber.gif)
+
+- 命令面板渐变效果
+
+  ![quickinput](./images/quickinput.gif)
+
+- 编辑器悬浮提示框玻璃效果
+
+  ![editorhover](./images/editorhover.gif)
+
+- 文本微渐变效果
+
+  ![textgradient](./images/textgradient.png)
+
+- 文字发光（默认关闭！）
+
+  ![textglow](./images/textglow.png)
+
+- Git 变更数字图标渐变
+
+### 🪟 窗口动画
+
+- 滚动时列表项渐入动画
+
+  ![list](./images/list.gif) ![list2](./images/list2.gif)
+
+- 活动项高亮动画
+
+  ![activateItem](./images/activateItem.gif) ![activateItem2](./images/activateItem2.gif) 
+
+- 平滑模式过渡效果smooth.gif
+
+  ![smooth](./images/smooth.gif)
+
+- 命令面板平滑展开/收起动画
 
 ### 🖱️ 光标拖尾特效
 
@@ -36,23 +81,6 @@
 - 可自定义拖尾颜色、透明度、发光效果
 - 支持多种动画时长和缓动效果
 - 智能短距离位移优化
-
-### 🪟 窗口动画
-
-- 命令面板平滑展开/收起动画
-- 标签页切换动画
-- 活动项高亮动画
-- 滚动时列表项渐入动画
-- 平滑模式过渡效果
-
-### 🌈 渐变主题增强
-
-- 编辑器悬浮玻璃效果
-- Git 变更数字图标渐变
-- 行号彩虹辉光效果
-- 快速输入框渐变效果
-- 文本微渐变效果
-- 顶部活动标签页渐变
 
 ## 📦 安装
 

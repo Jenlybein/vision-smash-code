@@ -8,7 +8,7 @@
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "keywords": [
     "cursor",
     "animation",
@@ -48,7 +48,7 @@
     "commands": [
       {
         "command": "visionSmashCode.openSettings",
-        "title": "Vision Smash Code: OpenSettings"
+        "title": "Vision Smash Code: OpenSettings - 打开设置"
       }
     ],
     "configuration": [
@@ -335,7 +335,7 @@
           "visionSmashCode.gradient.editor-hover": {
             "type": "boolean",
             "default": true,
-            "description": "Enable editor hover glass effect\n  启用编辑器悬停背景毛玻璃效果"
+            "description": "Enable editor hover glass effect\n  启用编辑器悬浮提示框背景毛玻璃效果"
           },
           "visionSmashCode.gradient.git-num-icon": {
             "type": "boolean",
