@@ -4,6 +4,8 @@
 
 一款为 VS Code 打造的视觉增强扩展，为你的编码体验注入活力！提供光标拖尾特效、窗口平滑动画和精美的渐变主题效果。
 
+中文文档 | [English Document](https://github.com/Jenlybein/vision-smash-code/blob/main/README.md)
+
 ## 🚀 使用方法
 
 ### 启用扩展
@@ -27,7 +29,7 @@
 
 修改配置后，扩展会自动提示你重载 VS Code 以应用更改。点击插件 `Custom CSS and JS Loader` 弹窗的确认按钮即可。
 
-![restart](./images/restart.png)
+![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
 
 ## ✨ 功能特性
 
@@ -35,44 +37,35 @@
 
 - 顶部活动标签页渐变
 
-  ![topactivate](./images/topactivate.gif)
-
+  ![topactivate](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/topactivate.gif)
 - 行号彩虹辉光效果
 
-  ![linenumber](./images/linenumber.gif)
-
+  ![linenumber](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/linenumber.gif)
 - 命令面板渐变效果
 
-  ![quickinput](./images/quickinput.gif)
-
+  ![quickinput](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/quickinput.gif)
 - 编辑器悬浮提示框玻璃效果
 
-  ![editorhover](./images/editorhover.gif)
-
+  ![editorhover](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/editorhover.gif)
 - 文本微渐变效果
 
-  ![textgradient](./images/textgradient.png)
-
+  ![textgradient](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/textgradient.png)
 - 文字发光（默认关闭！）
 
-  ![textglow](./images/textglow.png)
-
+  ![textglow](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/textglow.png)
 - Git 变更数字图标渐变
 
 ### 🪟 窗口动画
 
 - 滚动时列表项渐入动画
 
-  ![list](./images/list.gif) ![list2](./images/list2.gif)
-
+  ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif) ![list2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list2.gif)
 - 活动项高亮动画
 
-  ![activateItem](./images/activateItem.gif) ![activateItem2](./images/activateItem2.gif) 
-
+  ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif) ![activateItem2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem2.gif)
 - 平滑模式过渡效果smooth.gif
 
-  ![smooth](./images/smooth.gif)
-
+  ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)
 - 命令面板平滑展开/收起动画
 
 ### 🖱️ 光标拖尾特效

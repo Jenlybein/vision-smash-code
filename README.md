@@ -4,6 +4,8 @@
 
 A visual enhancement extension for VS Code that injects life into your coding experience! It provides cursor trailing effects, smooth window animations, and beautiful gradient theme enhancements.
 
+English Document | [中文文档](https://github.com/Jenlybein/vision-smash-code/blob/main/README-zh.md)
+
 ## 🚀 How to Use
 
 ### Enable the extension
@@ -17,17 +19,17 @@ A visual enhancement extension for VS Code that injects life into your coding ex
    - Window animations
    - Gradient theme enhancements
 
-| Setting                                 | Type    | Default   | Description                  |
-| -------------------------------------- | ------- | --------- | ---------------------------- |
-| `visionSmashCode.cursor.enabled`       | boolean | `false`   | Enable cursor trailing       |
-| `visionSmashCode.animations.enabled`   | boolean | `false`   | Enable window animations     |
-| `visionSmashCode.gradient.enabled`     | boolean | `false`   | Enable gradient theme effects|
+| Setting                                | Type    | Default   | Description                   |
+| -------------------------------------- | ------- | --------- | ----------------------------- |
+| `visionSmashCode.cursor.enabled`     | boolean | `false` | Enable cursor trailing        |
+| `visionSmashCode.animations.enabled` | boolean | `false` | Enable window animations      |
+| `visionSmashCode.gradient.enabled`   | boolean | `false` | Enable gradient theme effects |
 
 ### Applying changes
 
 After changing configuration, the extension will prompt you to reload VS Code to apply the changes. Click the confirmation button in the `Custom CSS and JS Loader` prompt.
 
-![restart](./images/restart.png)
+![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
 
 ## ✨ Features
 
@@ -35,44 +37,35 @@ After changing configuration, the extension will prompt you to reload VS Code to
 
 - Top active tab gradient
 
-  ![topactivate](./images/topactivate.gif)
-
+  ![topactivate](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/topactivate.gif)
 - Line number rainbow glow
 
-  ![linenumber](./images/linenumber.gif)
-
+  ![linenumber](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/linenumber.gif)
 - Command palette gradient
 
-  ![quickinput](./images/quickinput.gif)
-
+  ![quickinput](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/quickinput.gif)
 - Editor hover tooltip glass effect
 
-  ![editorhover](./images/editorhover.gif)
-
+  ![editorhover](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/editorhover.gif)
 - Text subtle gradients
 
-  ![textgradient](./images/textgradient.png)
-
+  ![textgradient](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/textgradient.png)
 - Text glow (disabled by default)
 
-  ![textglow](./images/textglow.png)
-
+  ![textglow](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/textglow.png)
 - Git change number icon gradients
 
 ### 🪟 Window Animations
 
 - Fade-in animations for list items on scroll
 
-  ![list](./images/list.gif) ![list2](./images/list2.gif)
-
+  ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif) ![list2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list2.gif)
 - Active item highlight animations
 
-  ![activateItem](./images/activateItem.gif) ![activateItem2](./images/activateItem2.gif)
-
+  ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif) ![activateItem2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem2.gif)
 - Smooth mode transitions
 
-  ![smooth](./images/smooth.gif)
-
+  ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)
 - Smooth expand/collapse animations for the command palette
 
 ### 🖱️ Cursor Trailing Effects
