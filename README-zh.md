@@ -57,16 +57,21 @@
 
 ### 🪟 窗口动画
 
+- 命令面板平滑展开/收起动画
+
+  ![quickinput_animation](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/quickinput_animation.gif)
+  
 - 滚动时列表项渐入动画
 
-  ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif) ![list2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list2.gif)
+  ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif)
+  
 - 活动项高亮动画
 
-  ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif) ![activateItem2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem2.gif)
+  ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif)
+  
 - 平滑模式过渡效果smooth.gif
 
   ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)
-- 命令面板平滑展开/收起动画
 
 ### 🖱️ 光标拖尾特效
 

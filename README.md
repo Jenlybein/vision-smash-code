@@ -57,16 +57,21 @@ After changing configuration, the extension will prompt you to reload VS Code to
 
 ### 🪟 Window Animations
 
+- Smooth expand/collapse animations for the command palette
+
+  ![quickinput_animation](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/quickinput_animation.gif)
+  
 - Fade-in animations for list items on scroll
 
-  ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif) ![list2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list2.gif)
+  ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif)
+  
 - Active item highlight animations
 
-  ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif) ![activateItem2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem2.gif)
+  ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif)
+  
 - Smooth mode transitions
 
   ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)
-- Smooth expand/collapse animations for the command palette
 
 ### 🖱️ Cursor Trailing Effects
 
