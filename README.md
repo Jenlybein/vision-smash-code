@@ -11,7 +11,9 @@ A visual enhancement extension for VS Code that brings your coding experience to
 
 ### Enable the Extension
 
-1. After installing the extension, press `Ctrl+Shift+P` to open the Command Palette
+**Note:** This extension requires the prerequisite plugin **[Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css)**. Without it, the effects will not load properly.
+
+1. After installing [Vision-Smash-Code](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) extension, press `Ctrl+Shift+P` to open the Command Palette
 2. Type `Vision Smash Code: OpenSettings`
 3. Enable the features you want in the settings page:
    - Cursor trail effects

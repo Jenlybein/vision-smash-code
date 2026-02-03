@@ -9,6 +9,8 @@
 
 ### 启用扩展
 
+**注意**：需按照前置插件 [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) ，否则无法加载效果！
+
 1. 安装扩展后，按 `Ctrl+Shift+P` 打开命令面板
 2. 输入 `Vision Smash Code: OpenSettings`
 3. 在设置页面启用你想要的功能：
@@ -16,8 +18,8 @@
    - 窗口动画
    - 主题渐变效果
 
-| 配置项                               | 类型    | 默认值  | 说明             |
-| ------------------------------------ | ------- | ------- | ---------------- |
+| 配置项                                 | 类型    | 默认值    | 说明             |
+| -------------------------------------- | ------- | --------- | ---------------- |
 | `visionSmashCode.cursor.enabled`     | boolean | `false` | 启用光标拖尾动画 |
 | `visionSmashCode.animations.enabled` | boolean | `false` | 启用窗口动效     |
 | `visionSmashCode.gradient.enabled`   | boolean | `false` | 启用主题渐变效果 |

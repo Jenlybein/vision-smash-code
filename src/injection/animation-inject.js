@@ -89,7 +89,8 @@ export function updateDuration(css, key) {
   return css;
 }
 
-export async function Activate() {
+// 激活扩展
+export async function Switch() {
   const enable = vscode.workspace
     .getConfiguration("visionSmashCode.animations")
     .get("enabled");
@@ -98,4 +99,9 @@ export async function Activate() {
   } else if (enable === false) {
     await util.RemovePathUtils(targetFilePath);
   }
+}
+
+// 关闭扩展
+export async function Deactivate() {
+  await util.RemovePathUtils(targetFilePath);
 }

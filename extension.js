@@ -6,8 +6,6 @@ import * as animation from "./src/injection/animation-inject.js";
 import * as gradient from "./src/injection/gradient-inject.js";
 
 function activate(context) {
-  console.log("[Vision Smash Code] Extension is now active!");
-
   // 获取扩展当前所处路径
   cursor.init(context);
   animation.init(context);
@@ -29,15 +27,15 @@ function activate(context) {
     }
     // 开关光标特效
     if (e.affectsConfiguration("visionSmashCode.cursor.enabled")) {
-      await cursor.Activate();
+      await cursor.Switch();
     }
     // 开关窗口动效
     if (e.affectsConfiguration("visionSmashCode.animations.enabled")) {
-      await animation.Activate();
+      await animation.Switch();
     }
     // 开关主题渐变效果
     if (e.affectsConfiguration("visionSmashCode.gradient.enabled")) {
-      await gradient.Activate();
+      await gradient.Switch();
     }
     // 整体配置变更，提示用户重载
     if (e.affectsConfiguration("visionSmashCode")) {
@@ -64,6 +62,14 @@ function activate(context) {
   context.subscriptions.push(openConfigCommand);
 }
 
-function deactivate() {}
+function deactivate() {
+  cursor.Deactivate();
+  animation.Deactivate();
+  gradient.Deactivate();
+  vscode.window.showInformationMessage(
+    `插件关闭成功！点击出现的弹窗确认进行重载`,
+  );
+  vscode.commands.executeCommand("extension.updateCustomCSS");
+}
 
 export { activate, deactivate };

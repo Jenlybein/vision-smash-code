@@ -94,7 +94,7 @@ export async function InjectConfigToFile() {
 }
 
 // 激活扩展
-export async function Activate() {
+export async function Switch() {
   const enable = vscode.workspace
     .getConfiguration("visionSmashCode.cursor")
     .get("enabled");
@@ -103,4 +103,9 @@ export async function Activate() {
   } else if (enable === false) {
     await util.RemovePathUtils(targetFilePath);
   }
+}
+
+// 关闭扩展
+export async function Deactivate() {
+  await util.RemovePathUtils(targetFilePath);
 }
