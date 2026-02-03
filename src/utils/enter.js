@@ -19,9 +19,8 @@ async function fileExists(p) {
 /**
  * 生成路径，加载对应文件到 Custom CSS & JS Loader 配置中
  * @param {string} scriptPath
- * @param {string} effectName
  */
-export async function GeneratePathUtils(scriptPath, effectName) {
+export async function GeneratePathUtils(scriptPath) {
   try {
     // 检查文件是否存在
     if (!(await fileExists(scriptPath))) {
@@ -95,5 +94,24 @@ export async function RemovePathUtils(scriptPath) {
     vscode.window.showErrorMessage(
       `删除路径时出错: ${/** @type {Error} */ (error).message}`,
     );
+  }
+}
+
+// 激活扩展
+export async function Switch(config, targetFilePath) {
+  const enable = vscode.workspace.getConfiguration(config).get("enabled");
+  if (enable) {
+    await GeneratePathUtils(targetFilePath);
+  } else if (enable === false) {
+    await RemovePathUtils(targetFilePath);
+  }
+}
+
+// 关闭扩展
+export async function Reload(config, targetFilePath) {
+  const enable = vscode.workspace.getConfiguration(config).get("enabled");
+  if (enable) {
+    await RemovePathUtils(targetFilePath);
+    await GeneratePathUtils(targetFilePath);
   }
 }

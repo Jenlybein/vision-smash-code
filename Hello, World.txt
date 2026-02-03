@@ -1,0 +1,5 @@
+Hello, World!
+Hello, Vscode!
+Hello, Javascript!
+Hello, Words!
+He

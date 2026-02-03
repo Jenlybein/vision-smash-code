@@ -93,16 +93,14 @@ export async function InjectConfigToFile() {
   fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
 }
 
-// 激活扩展
+// 开关扩展
 export async function Switch() {
-  const enable = vscode.workspace
-    .getConfiguration("visionSmashCode.cursor")
-    .get("enabled");
-  if (enable) {
-    await util.GeneratePathUtils(targetFilePath, "光标特效");
-  } else if (enable === false) {
-    await util.RemovePathUtils(targetFilePath);
-  }
+  util.Switch("visionSmashCode.cursor", targetFilePath);
+}
+
+// 重载配置
+export async function Reload() {
+  util.Reload("visionSmashCode.cursor", targetFilePath);
 }
 
 // 关闭扩展

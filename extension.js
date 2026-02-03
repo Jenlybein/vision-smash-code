@@ -16,14 +16,17 @@ function activate(context) {
     if (e.affectsConfiguration("visionSmashCode.cursor")) {
       // 指针配置改变，重新注入配置
       await cursor.InjectConfigToFile();
+      await cursor.Reload();
     }
     if (e.affectsConfiguration("visionSmashCode.animations")) {
       // 窗口动效配置改变，重新注入配置
       await animation.GetUpdatedCSS();
+      await animation.Reload();
     }
     if (e.affectsConfiguration("visionSmashCode.gradient")) {
       // 渐变配置改变，重新注入配置
       await gradient.InjectConfigToFile();
+      await gradient.Reload();
     }
     // 开关光标特效
     if (e.affectsConfiguration("visionSmashCode.cursor.enabled")) {
