@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import fs from "fs";
-import * as util from "../utils/enter.js";
+import * as util from "../common/utils.js";
 
 // 代码块标记
 const blockStart = "/* __AUTO_CONFIG_START__ */";

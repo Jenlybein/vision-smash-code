@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as vscode from "vscode";
 import * as path from "path";
-import * as util from "../utils/enter.js";
+import * as util from "../common/utils.js";
 
 // 窗口动效加载文件路径
 let targetFilePath = "";

@@ -1,9 +1,38 @@
 // @ts-check
 import * as vscode from "vscode";
-import * as path from "path";
-import * as cursor from "./src/injection/cursor-inject.js";
-import * as animation from "./src/injection/animation-inject.js";
-import * as gradient from "./src/injection/gradient-inject.js";
+import * as cursor from "./src/install/cursor-inject.js";
+import * as animation from "./src/install/animation-inject.js";
+import * as gradient from "./src/install/gradient-inject.js";
+
+// 配置修改事件配置
+let pendingTasks = new Set();
+const eventMap = {
+  "visionSmashCode.cursor": async () => {
+    await cursor.InjectConfigToFile();
+    await cursor.Reload();
+  },
+  "visionSmashCode.animations": async () => {
+    await animation.GetUpdatedCSS();
+    await animation.Reload();
+  },
+  "visionSmashCode.gradient": async () => {
+    await gradient.InjectConfigToFile();
+    await gradient.Reload();
+  },
+  "visionSmashCode.cursorEnabled": async () => {
+    await cursor.Switch();
+  },
+  "visionSmashCode.animationsEnabled": async () => {
+    await animation.Switch();
+  },
+  "visionSmashCode.gradientEnabled": async () => {
+    await gradient.Switch();
+  },
+};
+
+// 防抖定时器，用于延迟处理配置变更
+let debounceTimer = null;
+const DEBOUNCE_DELAY = 1000;
 
 function activate(context) {
   // 获取扩展当前所处路径
@@ -12,41 +41,37 @@ function activate(context) {
   gradient.init(context);
 
   // 监听配置变更
-  const configWatcher = vscode.workspace.onDidChangeConfiguration(async (e) => {
-    if (e.affectsConfiguration("visionSmashCode.cursor")) {
-      // 指针配置改变，重新注入配置
-      await cursor.InjectConfigToFile();
-      await cursor.Reload();
+  const configWatcher = vscode.workspace.onDidChangeConfiguration((e) => {
+    // 添加影响到的事件
+    for (const key of Object.keys(eventMap)) {
+      if (e.affectsConfiguration(key)) {
+        pendingTasks.add(eventMap[key]);
+      }
     }
-    if (e.affectsConfiguration("visionSmashCode.animations")) {
-      // 窗口动效配置改变，重新注入配置
-      await animation.GetUpdatedCSS();
-      await animation.Reload();
+
+    // 清除之前的定时器
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
     }
-    if (e.affectsConfiguration("visionSmashCode.gradient")) {
-      // 渐变配置改变，重新注入配置
-      await gradient.InjectConfigToFile();
-      await gradient.Reload();
-    }
-    // 开关光标特效
-    if (e.affectsConfiguration("visionSmashCode.cursor.enabled")) {
-      await cursor.Switch();
-    }
-    // 开关窗口动效
-    if (e.affectsConfiguration("visionSmashCode.animations.enabled")) {
-      await animation.Switch();
-    }
-    // 开关主题渐变效果
-    if (e.affectsConfiguration("visionSmashCode.gradient.enabled")) {
-      await gradient.Switch();
-    }
-    // 整体配置变更，提示用户重载
-    if (e.affectsConfiguration("visionSmashCode")) {
-      vscode.window.showInformationMessage(
-        `效果修改成功！点击出现的弹窗确认进行重载`,
-      );
-      vscode.commands.executeCommand("extension.updateCustomCSS");
-    }
+
+    // 设置新的防抖定时器
+    debounceTimer = setTimeout(async () => {
+      // 执行配置更改事件处理函数
+      for (const task of pendingTasks) {
+        await task();
+      }
+
+      pendingTasks.clear();
+
+      if (e.affectsConfiguration("visionSmashCode")) {
+        vscode.window.showInformationMessage(
+          `效果修改成功！点击出现的弹窗确认进行重载`,
+        );
+        vscode.commands.executeCommand("extension.updateCustomCSS");
+      }
+
+      debounceTimer = null;
+    }, DEBOUNCE_DELAY);
   });
 
   context.subscriptions.push(configWatcher);
