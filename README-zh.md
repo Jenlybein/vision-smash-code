@@ -31,6 +31,13 @@
 
 ![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
 
+### VSCode 提示 "已损坏" ?
+
+这是因为 Custom CSS and JS Loader 修改了 VSCode 的文件。这是正常现象，不会影响使用。如果想关闭提示，可以：
+
+* 点击 "不再提示"
+* 阅读 Custom CSS and JS Loader 文档寻求帮助
+
 ## ✨ 功能特性
 
 ### 🌈 渐变主题增强

@@ -31,6 +31,13 @@ After changing configuration, the extension will prompt you to reload VS Code to
 
 ![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
 
+### Why does VSCode show a "corrupted" warning?
+
+This is because Custom CSS and JS Loader modifies VSCode's internal files. This is normal behavior and won't affect usage. To dismiss the warning:
+
+* Click "Don't show again"
+* Refer to the Custom CSS and JS Loader documentation for assistance
+
 ## ✨ Features
 
 ### 🌈 Gradient Theme Enhancements
