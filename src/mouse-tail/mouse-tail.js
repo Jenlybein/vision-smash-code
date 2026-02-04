@@ -1,24 +1,24 @@
 /* __AUTO_CONFIG_START__ */
 const mouseConfig = {
-  mode: "electric", // dots | ribbon | beam | electric | smoke
+  mode: "ribbon", // dots | ribbon | beam | electric | smoke
 
   /* ========= 颜色 / 透明度 ========= */
-  tailColor: "#FFC0CB", // 尾迹主颜色（HEX）
+  tailColor: "#FFD700", // 尾迹主颜色（HEX）
   tailOpacity: 0.9, // 全局透明度倍率（0 ~ 1）
 
   /* ========= 阴影 / 发光 ========= */
   useShadow: true, // 是否启用发光阴影
-  shadowColor: "#FFC0CB", // 阴影颜色（HEX）
+  shadowColor: "#FF0000", // 阴影颜色（HEX）
   shadowBlurFactor: 1.8, // 阴影模糊强度（乘以 startWidth）
 
   /* ========= 尾迹长度 / 生命周期 ========= */
-  pointLife: 0.03, // 点的生命衰减速度
+  pointLife: 0.025, // 点的生命衰减速度
   maxPoints: 50, // 最大点数量
 
   /* ========= 宽度控制 ========= */
   startWidth: 5, // 鼠标头部最大宽度
-  widthPower: 1.4, // 宽度衰减指数
-  widthDecay: 1, // 宽度整体缩放系数
+  widthPower: 1, // 宽度衰减指数
+  widthDecay: 0.5, // 宽度整体缩放系数
 
   /* ========= 亮度 / 能量 ========= */
   energyCompensation: 0.75, // 细线时的亮度补偿

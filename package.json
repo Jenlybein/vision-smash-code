@@ -8,7 +8,7 @@
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "keywords": [
     "cursor",
     "animation",
@@ -347,13 +347,13 @@
               "electric",
               "smoke"
             ],
-            "default": "electric",
+            "default": "ribbon",
             "description": "Mouse tail mode\n  鼠标尾迹模式：dots=圆点, ribbon=丝带, beam=能量束, electric=电流, smoke=烟雾"
           },
           "visionSmashCode.mouse.tailColor": {
             "order": 1,
             "type": "string",
-            "default": "#FFC0CB",
+            "default": "#FFD700",
             "description": "Tail color (hex)\n  尾迹主颜色 (十六进制)"
           },
           "visionSmashCode.mouse.tailOpacity": {
@@ -373,7 +373,7 @@
           "visionSmashCode.mouse.shadowColor": {
             "order": 4,
             "type": "string",
-            "default": "#FFC0CB",
+            "default": "#FF0000",
             "description": "Shadow/glow color (hex)\n  阴影颜色 (十六进制)"
           },
           "visionSmashCode.mouse.shadowBlurFactor": {

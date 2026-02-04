@@ -83,7 +83,7 @@ async function flushChanges() {
 
   const imports = util.GetImports();
   const nextImports = await util.AddPaths(
-    util.RemovePaths(imports, removePaths),
+    util.RemovePaths(imports, removePaths.concat(addPaths)),
     addPaths,
   );
 
