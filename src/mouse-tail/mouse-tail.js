@@ -5,7 +5,7 @@ class MousePointerTrail {
     this.ctx = this.canvas.getContext("2d");
 
     this.points = [];
-    this.maxPoints = 32;
+    this.maxPoints = 64;
 
     this.lastX = null;
     this.lastY = null;
@@ -65,30 +65,48 @@ class MousePointerTrail {
     this.lastY = y;
   }
 
+  // points[0]：最旧的点，是尾巴
+  // points[points.length - 1]：最新的点，是鼠标当前位置
   draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     ctx.save();
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "rgba(255,140,255,0.8)";
     ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
-    for (let i = 0; i < this.points.length; i++) {
-      const p = this.points[i];
-      p.life -= 0.035;
-      if (p.life <= 0) continue;
+    // 无论是否画线，所有点都要衰减
+    for (const p of this.points) {
+      p.life -= 0.03;
+    }
 
-      const t = i / this.points.length;
-      const radius = 4 + t * 6;
-      const alpha = Math.min(1, p.life * 0.8);
+    if (this.points.length >= 2) {
+      for (let i = 1; i < this.points.length; i++) {
+        const p0 = this.points[i - 1];
+        const p1 = this.points[i];
 
-      ctx.beginPath();
-      ctx.fillStyle = `rgba(255, 140, 255, ${alpha})`;
-      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-      ctx.fill();
+        if (p1.life <= 0) continue;
+
+        const k = i / (this.points.length - 1);
+        const width = 4 * (k * k * (3 - 2 * k));
+        const alpha = p1.life * 0.6;
+
+        ctx.strokeStyle = `rgba(255, 140, 255, ${alpha})`;
+        ctx.lineWidth = width;
+
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.stroke();
+      }
     }
 
     ctx.restore();
 
+    // 最终统一清理
     this.points = this.points.filter((p) => p.life > 0);
   }
 

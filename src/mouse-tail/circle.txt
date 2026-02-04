@@ -1,0 +1,31 @@
+// 圆点型效果
+  draw() {
+    const ctx = this.ctx;
+
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    ctx.save();
+
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "rgba(255,140,255,0.8)";
+    ctx.globalCompositeOperation = "lighter";
+
+    for (let i = 0; i < this.points.length; i++) {
+      const p = this.points[i];
+      p.life -= 0.035;
+      if (p.life <= 0) continue;
+
+      const t = i / this.points.length;
+      const radius = 0 + t * 6;
+      const alpha = Math.min(1, p.life * 0.8);
+
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(255, 140, 255, ${alpha})`;
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    this.points = this.points.filter((p) => p.life > 0);
+  }
