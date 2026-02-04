@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import * as cursor from "./src/install/cursor-inject.js";
 import * as animation from "./src/install/animation-inject.js";
 import * as gradient from "./src/install/gradient-inject.js";
+import * as mouse from "./src/install/mouse-inject.js";
 import * as util from "./src/common/utils.js";
 
 // 模块声明表
@@ -24,6 +25,12 @@ const modules = {
     scope: "visionSmashCode.gradient",
     baseKey: "gradient",
     api: gradient,
+  },
+  mouse: {
+    filePath: "",
+    scope: "visionSmashCode.mouse",
+    baseKey: "mouse",
+    api: mouse,
   },
 };
 
@@ -82,8 +89,10 @@ async function flushChanges() {
 
   await util.UpdateImports(nextImports);
 
-  vscode.window.showInformationMessage("效果修改成功！点击确认进行重载");
-  vscode.commands.executeCommand("extension.updateCustomCSS");
+  setTimeout(() => {
+    vscode.window.showInformationMessage("效果修改成功！点击确认进行重载");
+    vscode.commands.executeCommand("extension.updateCustomCSS");
+  }, 500);
 }
 
 // 扩展激活

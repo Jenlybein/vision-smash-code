@@ -69,6 +69,11 @@
             "type": "boolean",
             "default": false,
             "description": "Enable gradient theme effects\n  启用主题渐变效果"
+          },
+          "visionSmashCode.base.mouse": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable mouse tail effects\n  启用鼠标尾迹效果"
           }
         }
       },
