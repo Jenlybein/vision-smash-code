@@ -10,6 +10,8 @@ export function init(context) {
   const baseRoot = path.join(context.extensionPath, "src", "gradient-theme");
   cssRoot = path.join(baseRoot, "css", "adaptive");
   targetFilePath = path.join(baseRoot, "gradient-theme.css");
+
+  return targetFilePath;
 }
 
 // 读取指定 CSS 文件内容
@@ -19,7 +21,7 @@ async function getCSSFile(cssFilePath, cssRoot) {
 }
 
 // 更新配置到目标文件
-export async function InjectConfigToFile() {
+export async function StyleConfigUpdate() {
   let css = "";
 
   // 读取配置文件

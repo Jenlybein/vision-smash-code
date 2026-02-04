@@ -9,6 +9,8 @@ let cssRoot = "";
 export function init(context) {
   cssRoot = path.join(context.extensionPath, "src", "vscode-animations");
   targetFilePath = path.join(cssRoot, "vscode-animations.css");
+
+  return targetFilePath;
 }
 
 // 读取指定 CSS 文件内容
@@ -17,7 +19,7 @@ async function getCSSFile(cssFilePath, cssRoot) {
   return fs.readFileSync(filePath, "utf8");
 }
 
-export async function GetUpdatedCSS() {
+export async function StyleConfigUpdate() {
   let css = "";
   // 加入默认过渡效果
   css += await getCSSFile("Default-Transitions.css", cssRoot);

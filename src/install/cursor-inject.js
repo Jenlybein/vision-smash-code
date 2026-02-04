@@ -16,6 +16,8 @@ export function init(context) {
     "neovide-cursor",
     "neovide-cursor.js",
   );
+
+  return targetFilePath;
 }
 
 // 获取光标特效配置
@@ -62,7 +64,7 @@ function getCursorConfig() {
 }
 
 // 更新配置到目标文件
-export async function InjectConfigToFile() {
+export async function StyleConfigUpdate() {
   if (!fs.existsSync(targetFilePath)) {
     throw new Error(`没找到目标文件: ${targetFilePath}`);
   }
