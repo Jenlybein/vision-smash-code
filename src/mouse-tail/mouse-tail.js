@@ -18,7 +18,7 @@ const mouseConfig = {
   /* ========= 宽度控制 ========= */
   startWidth: 5, // 鼠标头部最大宽度
   widthPower: 1.4, // 宽度衰减指数
-  widthDecay: 1.0, // 宽度整体缩放系数
+  widthDecay: 1, // 宽度整体缩放系数
 
   /* ========= 亮度 / 能量 ========= */
   energyCompensation: 0.75, // 细线时的亮度补偿

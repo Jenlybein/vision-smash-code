@@ -335,6 +335,104 @@
         }
       },
       {
+        "title": "Mouse Tail Effects - 鼠标尾迹效果设置",
+        "properties": {
+          "visionSmashCode.mouse.mode": {
+            "order": 0,
+            "type": "string",
+            "enum": [
+              "dots",
+              "ribbon",
+              "beam",
+              "electric",
+              "smoke"
+            ],
+            "default": "electric",
+            "description": "Mouse tail mode\n  鼠标尾迹模式：dots=圆点, ribbon=丝带, beam=能量束, electric=电流, smoke=烟雾"
+          },
+          "visionSmashCode.mouse.tailColor": {
+            "order": 1,
+            "type": "string",
+            "default": "#FFC0CB",
+            "description": "Tail color (hex)\n  尾迹主颜色 (十六进制)"
+          },
+          "visionSmashCode.mouse.tailOpacity": {
+            "order": 2,
+            "type": "number",
+            "default": 0.9,
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Tail opacity (0-1)\n  全局透明度倍率"
+          },
+          "visionSmashCode.mouse.useShadow": {
+            "order": 3,
+            "type": "boolean",
+            "default": true,
+            "description": "Enable glow shadow\n  是否启用发光阴影"
+          },
+          "visionSmashCode.mouse.shadowColor": {
+            "order": 4,
+            "type": "string",
+            "default": "#FFC0CB",
+            "description": "Shadow/glow color (hex)\n  阴影颜色 (十六进制)"
+          },
+          "visionSmashCode.mouse.shadowBlurFactor": {
+            "order": 5,
+            "type": "number",
+            "default": 1.8,
+            "description": "Shadow blur intensity (multiplier)\n  阴影模糊强度 (乘以 startWidth)"
+          },
+          "visionSmashCode.mouse.pointLife": {
+            "order": 6,
+            "type": "number",
+            "default": 0.03,
+            "minimum": 0.001,
+            "maximum": 1,
+            "description": "Point life decay speed\n  点的生命衰减速度"
+          },
+          "visionSmashCode.mouse.maxPoints": {
+            "order": 7,
+            "type": "integer",
+            "default": 50,
+            "minimum": 10,
+            "maximum": 200,
+            "description": "Max number of points\n  最大点数量"
+          },
+          "visionSmashCode.mouse.startWidth": {
+            "order": 8,
+            "type": "number",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Mouse head max width\n  鼠标头部最大宽度"
+          },
+          "visionSmashCode.mouse.widthPower": {
+            "order": 9,
+            "type": "number",
+            "default": 1.4,
+            "minimum": 0.1,
+            "maximum": 5,
+            "description": "Width decay exponent\n  宽度衰减指数"
+          },
+          "visionSmashCode.mouse.widthDecay": {
+            "order": 10,
+            "type": "number",
+            "default": 1.0,
+            "minimum": 0.1,
+            "maximum": 5,
+            "description": "Width overall scale factor\n  宽度整体缩放系数"
+          },
+          "visionSmashCode.mouse.energyCompensation": {
+            "order": 11,
+            "type": "number",
+            "default": 0.75,
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Brightness compensation for thin lines\n  细线时的亮度补偿"
+          }
+        }
+      },
+      {
         "title": "Theme Enhancements - 主题增强设置",
         "properties": {
           "visionSmashCode.gradient.editor-hover": {
