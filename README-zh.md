@@ -19,11 +19,11 @@
    - 窗口动画
    - 主题渐变效果
 
-| 配置项                                 | 类型    | 默认值    | 说明             |
-| -------------------------------------- | ------- | --------- | ---------------- |
-| `visionSmashCode.cursor.enabled`     | boolean | `false` | 启用光标拖尾动画 |
-| `visionSmashCode.animations.enabled` | boolean | `false` | 启用窗口动效     |
-| `visionSmashCode.gradient.enabled`   | boolean | `false` | 启用主题渐变效果 |
+| 配置项                                      | 类型    | 默认值    | 说明             |
+| ------------------------------------------- | ------- | --------- | ---------------- |
+| `visionSmashCode.base.cursoEnabled`       | boolean | `false` | 启用光标拖尾动画 |
+| `visionSmashCode.base.animations.enabled` | boolean | `false` | 启用窗口动效     |
+| `visionSmashCode.base.gradient.enabled`   | boolean | `false` | 启用主题渐变效果 |
 
 ### 应用更改
 
@@ -60,15 +60,12 @@
 - 命令面板平滑展开/收起动画
 
   ![quickinput_animation](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/quickinput_animation.gif)
-  
 - 滚动时列表项渐入动画
 
   ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif)
-  
 - 活动项高亮动画
 
   ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif)
-  
 - 平滑模式过渡效果smooth.gif
 
   ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)

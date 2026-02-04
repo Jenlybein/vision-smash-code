@@ -46,17 +46,7 @@ export async function InjectConfigToFile() {
   fs.writeFileSync(targetFilePath, css, "utf-8");
 }
 
-// 开关扩展
-export async function Switch() {
-  util.Switch("visionSmashCode.gradient", targetFilePath);
-}
-
-// 重载配置
-export async function Reload() {
-  util.Reload("visionSmashCode.gradient", targetFilePath);
-}
-
-// 关闭扩展
-export async function Deactivate() {
-  await util.RemovePathUtils(targetFilePath);
+// 获取加载文件路径
+export function GetPath() {
+  return targetFilePath;
 }

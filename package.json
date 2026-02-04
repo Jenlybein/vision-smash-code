@@ -8,7 +8,7 @@
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "0.0.5",
+  "version": "0.1.1",
   "keywords": [
     "cursor",
     "animation",
@@ -55,17 +55,17 @@
       {
         "title": "Base Settings - 基本配置",
         "properties": {
-          "visionSmashCode.cursorEnabled": {
+          "visionSmashCode.base.cursor": {
             "type": "boolean",
             "default": false,
             "description": "Enable Cursor Effects\n  启用光标特效"
           },
-          "visionSmashCode.animationsEnabled": {
+          "visionSmashCode.base.animations": {
             "type": "boolean",
             "default": false,
             "description": "Enable window animations\n  启用窗口动效"
           },
-          "visionSmashCode.gradientEnabled": {
+          "visionSmashCode.base.gradient": {
             "type": "boolean",
             "default": false,
             "description": "Enable gradient theme effects\n  启用主题渐变效果"

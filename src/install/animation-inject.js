@@ -89,17 +89,7 @@ export function updateDuration(css, key) {
   return css;
 }
 
-// 开关扩展
-export async function Switch() {
-  util.Switch("visionSmashCode.animations", targetFilePath);
-}
-
-// 重载配置
-export async function Reload() {
-  util.Reload("visionSmashCode.animations", targetFilePath);
-}
-
-// 关闭扩展
-export async function Deactivate() {
-  await util.RemovePathUtils(targetFilePath);
+// 获取加载文件路径
+export function GetPath() {
+  return targetFilePath;
 }

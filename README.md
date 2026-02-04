@@ -19,11 +19,11 @@ English Document | [中文文档](https://github.com/Jenlybein/vision-smash-code
    - Window animations
    - Gradient theme enhancements
 
-| Setting                                | Type    | Default   | Description                   |
-| -------------------------------------- | ------- | --------- | ----------------------------- |
-| `visionSmashCode.cursor.enabled`     | boolean | `false` | Enable cursor trailing        |
-| `visionSmashCode.animations.enabled` | boolean | `false` | Enable window animations      |
-| `visionSmashCode.gradient.enabled`   | boolean | `false` | Enable gradient theme effects |
+| Setting                                    | Type    | Default   | Description                   |
+| ------------------------------------------ | ------- | --------- | ----------------------------- |
+| `visionSmashCode.base.cursorEnabled`     | boolean | `false` | Enable cursor trailing        |
+| `visionSmashCode.base.animationsEnabled` | boolean | `false` | Enable window animations      |
+| `visionSmashCode.base.gradientEnabled`   | boolean | `false` | Enable gradient theme effects |
 
 ### Applying changes
 
@@ -60,15 +60,12 @@ After changing configuration, the extension will prompt you to reload VS Code to
 - Smooth expand/collapse animations for the command palette
 
   ![quickinput_animation](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/quickinput_animation.gif)
-  
 - Fade-in animations for list items on scroll
 
   ![list](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/list.gif)
-  
 - Active item highlight animations
 
   ![activateItem](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/activateItem.gif)
-  
 - Smooth mode transitions
 
   ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)

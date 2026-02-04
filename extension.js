@@ -3,36 +3,47 @@ import * as vscode from "vscode";
 import * as cursor from "./src/install/cursor-inject.js";
 import * as animation from "./src/install/animation-inject.js";
 import * as gradient from "./src/install/gradient-inject.js";
+import * as util from "./src/common/utils.js";
 
 // 配置修改事件配置
-let pendingTasks = new Set();
+function markReload(key) {
+  if (changeMap[key] !== "switch") {
+    changeMap[key] = "reload";
+  }
+}
+let pathMap = {};
 const eventMap = {
-  "visionSmashCode.cursor": async () => {
-    await cursor.InjectConfigToFile();
-    await cursor.Reload();
+  "visionSmashCode.cursor": () => {
+    cursor.InjectConfigToFile();
+    markReload("cursor");
   },
-  "visionSmashCode.animations": async () => {
-    await animation.GetUpdatedCSS();
-    await animation.Reload();
+  "visionSmashCode.animations": () => {
+    animation.GetUpdatedCSS();
+    markReload("animations");
   },
-  "visionSmashCode.gradient": async () => {
-    await gradient.InjectConfigToFile();
-    await gradient.Reload();
+  "visionSmashCode.gradient": () => {
+    gradient.InjectConfigToFile();
+    markReload("gradient");
   },
-  "visionSmashCode.cursorEnabled": async () => {
-    await cursor.Switch();
+  "visionSmashCode.base.cursor": () => {
+    changeMap.cursor = "switch";
   },
-  "visionSmashCode.animationsEnabled": async () => {
-    await animation.Switch();
+  "visionSmashCode.base.animations": () => {
+    changeMap.animations = "switch";
   },
-  "visionSmashCode.gradientEnabled": async () => {
-    await gradient.Switch();
+  "visionSmashCode.base.gradient": () => {
+    changeMap.gradient = "switch";
   },
+};
+const changeMap = {
+  cursor: "none",
+  animations: "none",
+  gradient: "none",
 };
 
 // 防抖定时器，用于延迟处理配置变更
 let debounceTimer = null;
-const DEBOUNCE_DELAY = 1000;
+const DEBOUNCE_DELAY = 2000;
 
 function activate(context) {
   // 获取扩展当前所处路径
@@ -40,12 +51,19 @@ function activate(context) {
   animation.init(context);
   gradient.init(context);
 
+  pathMap = {
+    cursor: cursor.GetPath(),
+    animations: animation.GetPath(),
+    gradient: gradient.GetPath(),
+  };
+
   // 监听配置变更
   const configWatcher = vscode.workspace.onDidChangeConfiguration((e) => {
+    if (!e.affectsConfiguration("visionSmashCode")) return;
     // 添加影响到的事件
     for (const key of Object.keys(eventMap)) {
       if (e.affectsConfiguration(key)) {
-        pendingTasks.add(eventMap[key]);
+        eventMap[key]();
       }
     }
 
@@ -56,19 +74,39 @@ function activate(context) {
 
     // 设置新的防抖定时器
     debounceTimer = setTimeout(async () => {
-      // 执行配置更改事件处理函数
-      for (const task of pendingTasks) {
-        await task();
+      // Custom CSS & JS Loader 更新时存在并发问题，需统一更新
+      const base = vscode.workspace.getConfiguration("visionSmashCode.base");
+      const addPaths = [];
+      const removePaths = [];
+      for (const key of Object.keys(changeMap)) {
+        if (changeMap[key] === "reload") {
+          if (base.get(key) === true) {
+            removePaths.push(pathMap[key]);
+            addPaths.push(pathMap[key]);
+          }
+        } else if (changeMap[key] === "switch") {
+          if (base.get(key) === true) {
+            addPaths.push(pathMap[key]);
+          } else {
+            removePaths.push(pathMap[key]);
+          }
+        }
+        changeMap[key] = "none";
       }
 
-      pendingTasks.clear();
+      const imports = util.GetImports();
+      console.log("\nImports", imports, "\n");
+      const NewImports1 = util.RemovePaths(imports, removePaths);
+      console.log("\nRemovePaths", NewImports1, "\n");
+      const NewImports2 = await util.AddPaths(NewImports1, addPaths);
+      console.log("\nAddPaths", NewImports2, "\n");
+      await util.UpdateImports(NewImports2);
 
-      if (e.affectsConfiguration("visionSmashCode")) {
-        vscode.window.showInformationMessage(
-          `效果修改成功！点击出现的弹窗确认进行重载`,
-        );
-        vscode.commands.executeCommand("extension.updateCustomCSS");
-      }
+      // 统一处理开关设置
+      vscode.window.showInformationMessage(
+        `效果修改成功！点击出现的弹窗确认进行重载`,
+      );
+      vscode.commands.executeCommand("extension.updateCustomCSS");
 
       debounceTimer = null;
     }, DEBOUNCE_DELAY);
@@ -90,14 +128,6 @@ function activate(context) {
   context.subscriptions.push(openConfigCommand);
 }
 
-function deactivate() {
-  cursor.Deactivate();
-  animation.Deactivate();
-  gradient.Deactivate();
-  vscode.window.showInformationMessage(
-    `插件关闭成功！点击出现的弹窗确认进行重载`,
-  );
-  vscode.commands.executeCommand("extension.updateCustomCSS");
-}
+function deactivate() {}
 
 export { activate, deactivate };

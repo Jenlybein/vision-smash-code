@@ -92,18 +92,7 @@ export async function InjectConfigToFile() {
   // 写入文件
   fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
 }
-
-// 开关扩展
-export async function Switch() {
-  util.Switch("visionSmashCode.cursor", targetFilePath);
-}
-
-// 重载配置
-export async function Reload() {
-  util.Reload("visionSmashCode.cursor", targetFilePath);
-}
-
-// 关闭扩展
-export async function Deactivate() {
-  await util.RemovePathUtils(targetFilePath);
+// 获取加载文件路径
+export function GetPath() {
+  return targetFilePath;
 }
