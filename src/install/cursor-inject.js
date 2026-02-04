@@ -72,7 +72,7 @@ export async function StyleConfigUpdate() {
   // 生成配置代码块（格式化 JSON，保持可读性）
   const config = getCursorConfig();
   const configText = JSON.stringify(config, null, 2);
-  const configBlock = `${blockStart}\nconst config = ${configText};\n${blockEnd}`;
+  const configBlock = `${blockStart}\nconst cursorConfig = ${configText};\n${blockEnd}`;
 
   // 构造用于匹配配置代码块的正则表达式
   const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

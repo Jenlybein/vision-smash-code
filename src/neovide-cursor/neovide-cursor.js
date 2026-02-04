@@ -1,5 +1,5 @@
 /* __AUTO_CONFIG_START__ */
-const config = {
+const cursorConfig = {
   tailColor: "#FFC0CB",
   tailOpacity: 1,
   useShadow: true,
@@ -45,10 +45,10 @@ const globalCursorState = {
 // === SECTION 3: 基础工具函数 (Utility Functions) ===
 
 /**
- * resolveColor 函数: 将 CSS 格式的 Hex 颜色转为 RGBA 分量对象
+ * cursorResolveColor 函数: 将 CSS 格式的 Hex 颜色转为 RGBA 分量对象
  * 逻辑: 拆解字符串, 将 16 进制数字转换为计算所需的 0-255 整数数值
  */
-const resolveColor = (hex) => {
+const cursorResolveColor = (hex) => {
   let h = hex.startsWith("#") ? hex.slice(1).toUpperCase() : hex.toUpperCase();
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   if (h.length === 6) h += "FF";
@@ -59,22 +59,15 @@ const resolveColor = (hex) => {
   return { r, g, b, a };
 };
 
-/**
- * rgbaToCss 函数: 将 RGBA 分量对象还原为 CSS 标准字符串
- */
-const rgbaToCss = ({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+// cursorRgbaToCss 函数: 将 RGBA 分量对象还原为 CSS 标准字符串
+const cursorRgbaToCss = ({ r, g, b, a }) =>
+  `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-/**
- * clamp 函数: 数值限幅器
- * 逻辑: 确保一个数值被强制锁定在指定的最小和最大范围之间
- */
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+// 数值限幅器: 确保一个数值被强制锁定在指定的最小和最大范围之间
+const cursorClamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-/**
- * normalize 函数: 2D 向量归一化
- * 逻辑: 计算向量的长度并将其缩减为 1, 从而只提取出方向信息
- */
-const normalize = (v) => {
+// 2D 向量归一化: 计算向量的长度并将其缩减为 1, 从而只提取出方向信息
+const cursorNormalize = (v) => {
   const l = Math.hypot(v.x, v.y);
   return l ? { x: v.x / l, y: v.y / l } : { x: 0, y: 0 };
 };
@@ -138,8 +131,8 @@ class Corner {
     this.rp = rp; // 角点相对于光标中心的相对位置系数
     this.cp = { x: 0, y: 0 }; // 角点当前在屏幕上的实际位置
     this.pd = { x: -1e5, y: -1e5 }; // 角点上一帧锁定的目标位置
-    this.ax = new DampedSpringAnimation(config.animationLength); // 左右(X轴)弹簧
-    this.ay = new DampedSpringAnimation(config.animationLength); // 上下(Y轴)弹簧
+    this.ax = new DampedSpringAnimation(cursorConfig.animationLength); // 左右(X轴)弹簧
+    this.ay = new DampedSpringAnimation(cursorConfig.animationLength); // 上下(Y轴)弹簧
     this.targetDim = { width: 8, height: 18 }; // 该角点认定的光标大小
   }
 
@@ -159,11 +152,11 @@ class Corner {
    */
   calculateDirectionAlignment(dim, destCenter) {
     const cornerDest = this.getDest(destCenter, dim);
-    const travelDir = normalize({
+    const travelDir = cursorNormalize({
       x: cornerDest.x - this.cp.x,
       y: cornerDest.y - this.cp.y,
     });
-    const cornerDir = normalize(this.rp);
+    const cornerDir = cursorNormalize(this.rp);
     return travelDir.x * cornerDir.x + travelDir.y * cornerDir.y;
   }
 
@@ -180,38 +173,43 @@ class Corner {
     };
     // 判断是否为短距离移动 (如正常打字)
     const isShortMove =
-      Math.abs(jv.x) <= config.shortMoveThreshold && Math.abs(jv.y) <= 0.001;
+      Math.abs(jv.x) <= cursorConfig.shortMoveThreshold &&
+      Math.abs(jv.y) <= 0.001;
     const baseTime = isShortMove
-      ? config.shortAnimationLength
-      : config.animationLength;
+      ? cursorConfig.shortAnimationLength
+      : cursorConfig.animationLength;
     const leadingAlignment =
-      normalize(jv).x * normalize(this.rp).x +
-      normalize(jv).y * normalize(this.rp).y;
+      cursorNormalize(jv).x * cursorNormalize(this.rp).x +
+      cursorNormalize(jv).y * cursorNormalize(this.rp).y;
 
     let finalFactor;
     // 领先判定: 对齐度极高的前端角点执行快速响应 (Hard Snap)
-    if (config.useHardSnap && leadingAlignment > config.leadingSnapThreshold) {
-      finalFactor = config.leadingSnapFactor;
+    if (
+      cursorConfig.useHardSnap &&
+      leadingAlignment > cursorConfig.leadingSnapThreshold
+    ) {
+      finalFactor = cursorConfig.leadingSnapFactor;
     } else {
       const factors = [
-        config.rank0TrailFactor,
-        config.rank1TrailFactor,
-        config.rank2TrailFactor,
-        config.rank3TrailFactor,
+        cursorConfig.rank0TrailFactor,
+        cursorConfig.rank1TrailFactor,
+        cursorConfig.rank2TrailFactor,
+        cursorConfig.rank3TrailFactor,
       ];
       finalFactor = factors[rank] || 1.0;
     }
 
     let len =
-      leadingAlignment > config.leadingSnapThreshold && config.useHardSnap
-        ? config.snapAnimationLength
-        : baseTime * clamp(finalFactor, 0, 1);
+      leadingAlignment > cursorConfig.leadingSnapThreshold &&
+      cursorConfig.useHardSnap
+        ? cursorConfig.snapAnimationLength
+        : baseTime * cursorClamp(finalFactor, 0, 1);
 
     this.ax.animationLength = len;
     this.ay.animationLength = len;
 
     // 若动画时长较大, 则清空旧动能, 避免之前的运动惯性干扰本次跳转
-    if (len > config.animationResetThreshold) {
+    if (len > cursorConfig.animationResetThreshold) {
       this.ax.reset();
       this.ay.reset();
     }
@@ -239,9 +237,9 @@ class Corner {
     this.ay.update(dt);
     // 限制拉伸距离, 防止物理计算异常导致光标飞出屏幕
     const maxD =
-      Math.max(dim.width, dim.height) * config.maxTrailDistanceFactor;
-    this.ax.position = clamp(this.ax.position, -maxD, maxD);
-    this.ay.position = clamp(this.ay.position, -maxD, maxD);
+      Math.max(dim.width, dim.height) * cursorConfig.maxTrailDistanceFactor;
+    this.ax.position = cursorClamp(this.ax.position, -maxD, maxD);
+    this.ay.position = cursorClamp(this.ay.position, -maxD, maxD);
     // 最终绘制点 = 目标点 - 弹簧尚未消化的剩余距离
     this.cp.x = dest.x - this.ax.position;
     this.cp.y = dest.y - this.ay.position;
@@ -256,15 +254,15 @@ class Corner {
  */
 const createNeovideCursor = ({ canvas }) => {
   // 预计算颜色值, 减少绘图时的重复计算开销
-  const colorObj = resolveColor(config.tailColor),
-    finalColorCss = rgbaToCss({
+  const colorObj = cursorResolveColor(cursorConfig.tailColor),
+    finalColorCss = cursorRgbaToCss({
       ...colorObj,
-      a: (colorObj.a * config.tailOpacity) >> 0,
+      a: (colorObj.a * cursorConfig.tailOpacity) >> 0,
     }),
-    shadowColorCss = config.useShadow
-      ? config.shadowColor === config.tailColor
+    shadowColorCss = cursorConfig.useShadow
+      ? cursorConfig.shadowColor === cursorConfig.tailColor
         ? finalColorCss
-        : rgbaToCss(resolveColor(config.shadowColor))
+        : cursorRgbaToCss(cursorResolveColor(cursorConfig.shadowColor))
       : null;
 
   const context = canvas.getContext("2d");
@@ -378,10 +376,10 @@ const createNeovideCursor = ({ canvas }) => {
           context.lineTo(corners[i].cp.x, corners[i].cp.y);
         context.closePath();
         context.fillStyle = finalColorCss;
-        if (config.useShadow) {
+        if (cursorConfig.useShadow) {
           context.shadowColor = shadowColorCss;
           context.shadowBlur =
-            config.shadowBlurFactor *
+            cursorConfig.shadowBlurFactor *
             Math.max(cursorDimensions.width, cursorDimensions.height);
         }
         context.fill();
@@ -455,7 +453,7 @@ class GlobalCursorManager {
     );
 
     this.loop();
-    setInterval(() => this.scan(), config.cursorUpdatePollingRate);
+    setInterval(() => this.scan(), cursorConfig.cursorUpdatePollingRate);
   }
 
   /**
@@ -567,20 +565,22 @@ class GlobalCursorManager {
       this.canvas.style.opacity = "1";
       this.cursors.forEach((d) => {
         if (d.isActive && d.target) {
-          d.target.style.transition = config.nativeCursorDisappearTransitionCss;
+          d.target.style.transition =
+            cursorConfig.nativeCursorDisappearTransitionCss;
           d.target.style.opacity = "0";
         }
       });
     } else {
       if (this.canvas.style.opacity === "1") {
         setTimeout(() => {
-          this.canvas.style.transition = config.canvasFadeTransitionCss;
+          this.canvas.style.transition = cursorConfig.canvasFadeTransitionCss;
           this.canvas.style.opacity = "0";
-        }, config.cursorDisappearDelay);
+        }, cursorConfig.cursorDisappearDelay);
       }
       this.cursors.forEach((d) => {
         if (d.isActive && d.target) {
-          d.target.style.transition = config.nativeCursorRevealTransitionCss;
+          d.target.style.transition =
+            cursorConfig.nativeCursorRevealTransitionCss;
           d.target.style.opacity = "1";
         }
       });

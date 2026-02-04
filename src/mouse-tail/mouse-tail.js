@@ -1,42 +1,77 @@
-// VS Code 鼠标指针尾迹
+/* __AUTO_CONFIG_START__ */
+const mouseConfig = {
+  mode: "electric", // dots | ribbon | beam | electric | smoke
+
+  /* ========= 颜色 / 透明度 ========= */
+  tailColor: "#FFC0CB", // 尾迹主颜色（HEX）
+  tailOpacity: 0.9, // 全局透明度倍率（0 ~ 1）
+
+  /* ========= 阴影 / 发光 ========= */
+  useShadow: true, // 是否启用发光阴影
+  shadowColor: "#FFC0CB", // 阴影颜色（HEX）
+  shadowBlurFactor: 1.8, // 阴影模糊强度（乘以 startWidth）
+
+  /* ========= 尾迹长度 / 生命周期 ========= */
+  pointLife: 0.03, // 点的生命衰减速度
+  maxPoints: 50, // 最大点数量
+
+  /* ========= 宽度控制 ========= */
+  startWidth: 5, // 鼠标头部最大宽度
+  widthPower: 1.4, // 宽度衰减指数
+  widthDecay: 1.0, // 宽度整体缩放系数
+
+  /* ========= 亮度 / 能量 ========= */
+  energyCompensation: 0.75, // 细线时的亮度补偿
+};
+/* __AUTO_CONFIG_END__ */
+
+// HEX → RGBA(255)
+function mouseHexToRgba(hex, alpha255 = 255) {
+  const n = parseInt(hex.slice(1), 16);
+  return {
+    r: (n >> 16) & 255,
+    g: (n >> 8) & 255,
+    b: n & 255,
+    a: alpha255,
+  };
+}
+
+// RGBA → CSS
+const mouseRgbaToCss = ({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+
+const mouseClamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
 class MousePointerTrail {
   constructor() {
     this.canvas = document.createElement("canvas");
     this.ctx = this.canvas.getContext("2d");
 
     this.points = [];
-    this.maxPoints = 64;
-
     this.lastX = null;
     this.lastY = null;
+
+    this.tailBase = mouseHexToRgba(mouseConfig.tailColor);
+    this.shadowBase = mouseHexToRgba(mouseConfig.shadowColor);
 
     this.init();
   }
 
   init() {
-    // 设置全屏透明画板
     this.canvas.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        pointer-events: none;
-        z-index: 9999;
-        background: transparent;
-      `;
-
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+    `;
     document.body.appendChild(this.canvas);
 
-    // 自适应覆盖窗口大小
-    window.addEventListener("resize", () => {
+    const resize = () => {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
-    });
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", resize);
+    resize();
 
-    // 系统鼠标移动
     window.addEventListener("mousemove", (e) => {
       this.onMouseMove(e.clientX, e.clientY);
     });
@@ -51,13 +86,8 @@ class MousePointerTrail {
       if (dx * dx + dy * dy < 1) return;
     }
 
-    this.points.push({
-      x,
-      y,
-      life: 1,
-    });
-
-    if (this.points.length > this.maxPoints) {
+    this.points.push({ x, y, life: 1 });
+    if (this.points.length > mouseConfig.maxPoints) {
       this.points.shift();
     }
 
@@ -65,48 +95,134 @@ class MousePointerTrail {
     this.lastY = y;
   }
 
-  // points[0]：最旧的点，是尾巴
-  // points[points.length - 1]：最新的点，是鼠标当前位置
   draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    for (const p of this.points) {
+      p.life -= mouseConfig.pointLife;
+    }
+
     ctx.save();
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "rgba(255,140,255,0.8)";
-    ctx.globalCompositeOperation = "lighter";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // 无论是否画线，所有点都要衰减
-    for (const p of this.points) {
-      p.life -= 0.03;
+    if (mouseConfig.useShadow) {
+      ctx.shadowBlur = mouseConfig.startWidth * mouseConfig.shadowBlurFactor;
+      ctx.shadowColor = mouseRgbaToCss({ ...this.shadowBase, a: 255 });
     }
 
-    if (this.points.length >= 2) {
-      for (let i = 1; i < this.points.length; i++) {
-        const p0 = this.points[i - 1];
-        const p1 = this.points[i];
+    switch (mouseConfig.mode) {
+      /* ========= 圆点 ========= */
+      case "dots":
+        for (const p of this.points) {
+          if (p.life <= 0) continue;
+          const r = mouseConfig.startWidth * p.life;
+          ctx.fillStyle = mouseRgbaToCss({
+            ...this.tailBase,
+            a: p.life * 255 * mouseConfig.tailOpacity,
+          });
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
 
-        if (p1.life <= 0) continue;
+      /* ========= 丝带 ========= */
+      case "ribbon":
+        for (let i = 1; i < this.points.length; i++) {
+          const p0 = this.points[i - 1];
+          const p1 = this.points[i];
+          if (p1.life <= 0) continue;
 
-        const k = i / (this.points.length - 1);
-        const width = 4 * (k * k * (3 - 2 * k));
-        const alpha = p1.life * 0.6;
+          const t = i / (this.points.length - 1);
+          const width =
+            mouseConfig.startWidth * Math.pow(t, mouseConfig.widthPower);
 
-        ctx.strokeStyle = `rgba(255, 140, 255, ${alpha})`;
-        ctx.lineWidth = width;
+          const alpha =
+            p1.life *
+            (width / mouseConfig.startWidth) *
+            mouseConfig.energyCompensation *
+            mouseConfig.tailOpacity;
 
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.stroke();
-      }
+          ctx.strokeStyle = mouseRgbaToCss({
+            ...this.tailBase,
+            a: mouseClamp(alpha * 255, 0, 255),
+          });
+          ctx.lineWidth = width;
+
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.stroke();
+        }
+        break;
+
+      /* ========= 能量束 ========= */
+      case "beam":
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 1; i < this.points.length; i++) {
+          const p0 = this.points[i - 1];
+          const p1 = this.points[i];
+          if (p1.life <= 0) continue;
+
+          ctx.lineWidth = mouseConfig.startWidth;
+          ctx.strokeStyle = mouseRgbaToCss({
+            ...this.tailBase,
+            a: p1.life * 255,
+          });
+
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.stroke();
+        }
+        break;
+
+      /* ========= 电流 ========= */
+      case "electric":
+        for (let i = 1; i < this.points.length; i++) {
+          const p0 = this.points[i - 1];
+          const p1 = this.points[i];
+          if (p1.life <= 0) continue;
+
+          const jitter = 6;
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = mouseRgbaToCss({
+            ...this.tailBase,
+            a: p1.life * 255,
+          });
+
+          ctx.beginPath();
+          ctx.moveTo(
+            p0.x + Math.random() * jitter,
+            p0.y + Math.random() * jitter,
+          );
+          ctx.lineTo(
+            p1.x + Math.random() * jitter,
+            p1.y + Math.random() * jitter,
+          );
+          ctx.stroke();
+        }
+        break;
+
+      /* ========= 烟雾 ========= */
+      case "smoke":
+        for (const p of this.points) {
+          if (p.life <= 0) continue;
+          const r = mouseConfig.startWidth * (1 - p.life);
+          ctx.fillStyle = mouseRgbaToCss({
+            ...this.tailBase,
+            a: p.life * 120,
+          });
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
     }
 
     ctx.restore();
-
-    // 最终统一清理
     this.points = this.points.filter((p) => p.life > 0);
   }
 
@@ -116,5 +232,4 @@ class MousePointerTrail {
   }
 }
 
-// 启动
 new MousePointerTrail();
