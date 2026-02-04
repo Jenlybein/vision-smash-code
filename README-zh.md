@@ -77,12 +77,21 @@
 
   ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)
 
-### 🖱️ 光标拖尾特效
+### 🖱️鼠标拖尾特效
+
+- 多种鼠标拖尾特效
+
+  ![dots](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/dots.gif) ![beam](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/beam.gif) ![ribbon](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/ribbon.gif) ![smoke](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smoke.gif) ![electric](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/electric.gif)
+
+- 可自定义拖尾颜色、透明度、发光效果
+
+- 支持多种动画时长和缓动效果
+
+### 🟪光标拖尾特效
 
 - 流畅的光标拖尾动画，让光标移动更加灵动
 - 可自定义拖尾颜色、透明度、发光效果
 - 支持多种动画时长和缓动效果
-- 智能短距离位移优化
 
 ## 📦 安装
 

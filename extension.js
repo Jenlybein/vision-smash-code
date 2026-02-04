@@ -92,7 +92,7 @@ async function flushChanges() {
   setTimeout(() => {
     vscode.window.showInformationMessage("效果修改成功！点击确认进行重载");
     vscode.commands.executeCommand("extension.updateCustomCSS");
-  }, 500);
+  }, 400);
 }
 
 // 扩展激活
@@ -104,7 +104,7 @@ function activate(context) {
 
   // 防抖参数
   let debounceTimer = null;
-  const DEBOUNCE_DELAY = 2000;
+  const DEBOUNCE_DELAY = 1200;
 
   // 监听配置变化
   context.subscriptions.push(

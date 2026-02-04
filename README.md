@@ -77,12 +77,25 @@ This is because Custom CSS and JS Loader modifies VSCode's internal files. This 
 
   ![smooth](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smooth.gif)
 
-### 🖱️ Cursor Trailing Effects
+- ### 🖱️ Mouse Trail Effects
 
-- Smooth cursor trailing animation for livelier cursor movement
-- Customizable trail color, opacity, and glow
-- Multiple duration and easing options
-- Smart short-distance movement optimization
+  - Multiple mouse trail effects
+
+    ![dots](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/dots.gif) ![beam](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/beam.gif) ![ribbon](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/ribbon.gif) ![smoke](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/smoke.gif) ![electric](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/electric.gif)
+
+  - Customizable trail color, opacity, and glow effects
+
+  - Supports various animation durations and easing effects
+
+  ### 🟪 Cursor Trail Effects
+
+  - Smooth cursor trailing animations that make cursor movement more lively
+
+    ![linenumber](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/linenumber.gif)
+
+  - Customizable trail color, opacity, and glow effects
+
+  - Supports various animation durations and easing effects
 
 ## 📦 Installation
 
