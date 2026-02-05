@@ -44,40 +44,33 @@ const globalCursorState = {
 
 // === SECTION 3: 基础工具函数 (Utility Functions) ===
 
-/**
- * cursorResolveColor 函数: 将 CSS 格式的 Hex 颜色转为 RGBA 分量对象
- * 逻辑: 拆解字符串, 将 16 进制数字转换为计算所需的 0-255 整数数值
- */
 const cursorResolveColor = (hex) => {
   let h = hex.startsWith("#") ? hex.slice(1).toUpperCase() : hex.toUpperCase();
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   if (h.length === 6) h += "FF";
-  const r = parseInt(h.slice(0, 2), 16) >> 0,
-    g = parseInt(h.slice(2, 4), 16) >> 0,
-    b = parseInt(h.slice(4, 6), 16) >> 0,
-    a = parseInt(h.slice(6, 8), 16) >> 0;
-  return { r, g, b, a };
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+    a: parseInt(h.slice(6, 8), 16),
+  };
 };
 
-// cursorRgbaToCss 函数: 将 RGBA 分量对象还原为 CSS 标准字符串
 const cursorRgbaToCss = ({ r, g, b, a }) =>
   `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-// 定义光标四个角点的局部坐标参考系 (以中心点为原点)
 const cursorRelativeCorners = [
-  { x: -0.5, y: -0.5 }, // 左上 (Top-Left)
-  { x: 0.5, y: -0.5 }, // 右上 (Top-Right)
-  { x: 0.5, y: 0.5 }, // 右下 (Bottom-Right)
-  { x: -0.5, y: 0.5 }, // 左下 (Bottom-Left)
+  { x: -0.5, y: -0.5 },
+  { x: 0.5, y: -0.5 },
+  { x: 0.5, y: 0.5 },
+  { x: -0.5, y: 0.5 },
 ];
-// ================= 工具函数 =================
 
 const cursorClamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
 const cursorNormalize = (v) => {
   const l = Math.hypot(v.x, v.y);
-  if (!l) return { x: 0, y: 0 };
-  return { x: v.x / l, y: v.y / l };
+  return l ? { x: v.x / l, y: v.y / l } : { x: 0, y: 0 };
 };
 
 // ================= 弹簧 =================
@@ -96,9 +89,9 @@ class DampedSpringAnimation {
       return false;
     }
     const o = 4.0 / this.animationLength;
+    const c = Math.exp(-o * dt);
     const a = this.position;
     const b = this.position * o + this.velocity;
-    const c = Math.exp(-o * dt);
 
     this.position = (a + b * dt) * c;
     this.velocity = c * (-a * o - b * dt * o + b);
@@ -118,46 +111,38 @@ class Corner {
   constructor(rp) {
     this.rp = rp;
     this.rpNorm = cursorNormalize(rp);
-
     this.cp = { x: 0, y: 0 };
     this.pd = { x: -1e5, y: -1e5 };
-
     this.ax = new DampedSpringAnimation(cursorConfig.animationLength);
     this.ay = new DampedSpringAnimation(cursorConfig.animationLength);
-
     this.targetDim = { width: 8, height: 18 };
+    this.TRAIL_FACTORS = [
+      cursorConfig.rank0TrailFactor,
+      cursorConfig.rank1TrailFactor,
+      cursorConfig.rank2TrailFactor,
+      cursorConfig.rank3TrailFactor,
+    ];
   }
 
   calculateDirectionAlignment(dim, center) {
-    const dest = { x: 0, y: 0 };
-    this.getDest(dest, center, dim);
-
-    const dir = {
-      x: dest.x - this.cp.x,
-      y: dest.y - this.cp.y,
-    };
-
-    const len = Math.hypot(dir.x, dir.y);
-    if (!len) return 0;
-
-    const nx = dir.x / len;
-    const ny = dir.y / len;
-
-    return nx * this.rpNorm.x + ny * this.rpNorm.y;
+    const dest = this.getDest(center, dim);
+    const dx = dest.x - this.cp.x;
+    const dy = dest.y - this.cp.y;
+    const len = Math.hypot(dx, dy);
+    return len ? (dx / len) * this.rpNorm.x + (dy / len) * this.rpNorm.y : 0;
   }
 
-  getDest(out, c, dim) {
-    out.x = c.x + this.rp.x * dim.width;
-    out.y = c.y + this.rp.y * dim.height;
+  getDest(c, dim) {
+    return {
+      x: c.x + this.rp.x * dim.width,
+      y: c.y + this.rp.y * dim.height,
+    };
   }
 
   jump(c, dim, rank) {
-    this.targetDim.width = dim.width;
-    this.targetDim.height = dim.height;
+    this.targetDim = { ...dim };
 
-    const dest = { x: 0, y: 0 };
-    this.getDest(dest, c, dim);
-
+    const dest = this.getDest(c, dim);
     const jv = {
       x: (dest.x - this.pd.x) / dim.width,
       y: (dest.y - this.pd.y) / dim.height,
@@ -174,30 +159,18 @@ class Corner {
       ? cursorConfig.shortAnimationLength
       : cursorConfig.animationLength;
 
-    const leadingAlignment =
-      jvNorm.x * this.rpNorm.x + jvNorm.y * this.rpNorm.y;
+    const alignment = jvNorm.x * this.rpNorm.x + jvNorm.y * this.rpNorm.y;
 
-    let finalFactor;
-    if (
-      cursorConfig.useHardSnap &&
-      leadingAlignment > cursorConfig.leadingSnapThreshold
-    ) {
-      finalFactor = cursorConfig.leadingSnapFactor;
-    } else {
-      const factors = [
-        cursorConfig.rank0TrailFactor,
-        cursorConfig.rank1TrailFactor,
-        cursorConfig.rank2TrailFactor,
-        cursorConfig.rank3TrailFactor,
-      ];
-      finalFactor = factors[rank] || 1;
-    }
+    const useSnap =
+      cursorConfig.useHardSnap && alignment > cursorConfig.leadingSnapThreshold;
 
-    const lenAnim =
-      leadingAlignment > cursorConfig.leadingSnapThreshold &&
-      cursorConfig.useHardSnap
-        ? cursorConfig.snapAnimationLength
-        : baseTime * cursorClamp(finalFactor, 0, 1);
+    const factor = useSnap
+      ? cursorConfig.leadingSnapFactor
+      : (this.TRAIL_FACTORS[rank] ?? 1);
+
+    const lenAnim = useSnap
+      ? cursorConfig.snapAnimationLength
+      : baseTime * cursorClamp(factor, 0, 1);
 
     this.ax.animationLength = lenAnim;
     this.ay.animationLength = lenAnim;
@@ -215,13 +188,11 @@ class Corner {
     if (destX !== this.pd.x || destY !== this.pd.y) {
       this.ax.position = destX - this.cp.x;
       this.ay.position = destY - this.cp.y;
-      this.pd.x = destX;
-      this.pd.y = destY;
+      this.pd = { x: destX, y: destY };
     }
 
     if (imm) {
-      this.cp.x = destX;
-      this.cp.y = destY;
+      this.cp = { x: destX, y: destY };
       this.ax.reset();
       this.ay.reset();
       return false;
@@ -236,8 +207,10 @@ class Corner {
     this.ax.position = cursorClamp(this.ax.position, -maxD, maxD);
     this.ay.position = cursorClamp(this.ay.position, -maxD, maxD);
 
-    this.cp.x = destX - this.ax.position;
-    this.cp.y = destY - this.ay.position;
+    this.cp = {
+      x: destX - this.ax.position,
+      y: destY - this.ay.position,
+    };
 
     return Math.abs(this.ax.position) > 0.5 || Math.abs(this.ay.position) > 0.5;
   }
@@ -299,8 +272,7 @@ const createNeovideCursor = ({ canvas }) => {
           };
           corners.forEach((c) => {
             c.targetDim = { ...oldDim };
-            const d = { x: 0, y: 0 };
-            c.getDest(d, { x: src.x, y: src.y }, oldDim);
+            const d = c.getDest({ x: src.x, y: src.y }, oldDim);
             c.cp = { x: d.x, y: d.y };
             c.pd = { x: d.x, y: d.y };
           });
@@ -308,8 +280,7 @@ const createNeovideCursor = ({ canvas }) => {
           // 无源坐标时, 直接在目标位置初始化
           corners.forEach((c) => {
             c.targetDim = { ...cursorDimensions };
-            const d = { x: 0, y: 0 };
-            c.getDest(d, newCenter, cursorDimensions);
+            const d = c.getDest(newCenter, cursorDimensions);
             c.cp = { x: d.x, y: d.y };
             c.pd = { x: d.x, y: d.y };
           });
@@ -458,106 +429,51 @@ class GlobalCursorManager {
    * scan 方法: 探测并匹配 DOM 元素与物理实例
    */
   scan() {
-    const ids = new Set();
+    const found = new Set();
     const els = /** @type {NodeListOf<HTMLElement>} */ (
       document.querySelectorAll(".monaco-editor .cursor")
     );
-    els.forEach((el) => {
-      let id =
-        el.dataset.cursorId || "c" + Math.random().toString(36).slice(2, 7);
-      el.dataset.cursorId = id;
-      ids.add(id);
 
-      // 如果发现新的光标 DOM, 立即创建对应的物理引擎对象
-      if (!this.cursors.has(id)) {
-        const r = el.getBoundingClientRect();
-        const inst = createNeovideCursor({ canvas: this.canvas });
-        if (r.left > 0 || r.top > 0) {
-          inst.updateSize(r.width, r.height);
-          inst.move(
-            r.left,
-            r.top,
-            globalCursorState.lastX
-              ? {
-                  x: globalCursorState.lastX,
-                  y: globalCursorState.lastY,
-                }
-              : null,
-          );
-          this.cursors.set(id, {
-            instance: inst,
-            target: el,
-            lastX: r.left,
-            lastY: r.top,
-            isActive: false,
-          });
-        }
+    els.forEach((el) => {
+      let id = el.dataset.cursorId;
+      if (!id) {
+        id = "c" + Math.random().toString(36).slice(2, 7);
+        el.dataset.cursorId = id;
       }
+      found.add(id);
+
+      if (this.cursors.has(id)) return;
+
+      const r = el.getBoundingClientRect();
+      if (r.left <= 0 && r.top <= 0) return;
+
+      const inst = createNeovideCursor({ canvas: this.canvas });
+      inst.updateSize(r.width, r.height);
+
+      inst.move(
+        r.left,
+        r.top,
+        globalCursorState.lastX
+          ? { x: globalCursorState.lastX, y: globalCursorState.lastY }
+          : null,
+      );
+
+      this.cursors.set(id, {
+        instance: inst,
+        target: el,
+        lastX: r.left,
+        lastY: r.top,
+        isActive: false,
+      });
     });
-    // 回收已经消失的 DOM 对应的实例
+
     for (const id of this.cursors.keys()) {
-      if (!ids.has(id)) this.cursors.delete(id);
+      if (!found.has(id)) this.cursors.delete(id);
     }
   }
 
-  /**
-   * loop 方法: 顶层渲染引擎, 控制每一帧的最终输出
-   */
-  loop() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    let isAnyAnimating = false;
-
-    for (const [id, data] of this.cursors) {
-      if (!data.target || !data.target.isConnected) {
-        this.cursors.delete(id);
-        continue;
-      }
-      const r = data.target.getBoundingClientRect();
-      const style = getComputedStyle(data.target);
-      // 判定原生光标当前是否在界面上逻辑可见 (排除因分屏隐藏的光标)
-      const isNowActive =
-        style.visibility !== "hidden" &&
-        style.display !== "none" &&
-        !style.transform.includes("-10000px");
-      const hasMoved = r.left !== data.lastX || r.top !== data.lastY;
-
-      // 状态管理: 处理光标首次激活时的跳转引导
-      if (isNowActive && !data.isActive) {
-        data.isJumping = true;
-        data.jumpSource = globalCursorState.lastX
-          ? { x: globalCursorState.lastX, y: globalCursorState.lastY }
-          : null;
-      }
-
-      if (data.isJumping && hasMoved) {
-        data.instance.updateSize(r.width, r.height);
-        data.instance.move(r.left, r.top, data.jumpSource);
-        data.isJumping = false;
-        data.lastX = r.left;
-        data.lastY = r.top;
-      } else if (isNowActive && hasMoved) {
-        data.instance.updateSize(r.width, r.height);
-        data.instance.move(r.left, r.top);
-        data.lastX = r.left;
-        data.lastY = r.top;
-      }
-
-      data.isActive = isNowActive;
-      if (isNowActive) {
-        const anim = data.instance.updateLoop(
-          this.isScrolling,
-          r.left >= 0 && r.top >= 0 && r.left <= window.innerWidth,
-        );
-        if (anim) isAnyAnimating = true;
-        data.isAnimating = anim;
-      } else {
-        data.isAnimating = false;
-      }
-    }
-
-    // 显隐逻辑策略:
-    // 动画中: 隐藏原生光标, 渲染物理 Canvas
-    // 静止后: 恢复原生光标 (确保清晰度), 渐隐物理 Canvas
+  // 显隐逻辑提取为独立函数（降低复杂度）
+  updateVisibility(isAnyAnimating) {
     if (isAnyAnimating) {
       this.canvas.style.transition = "none";
       this.canvas.style.opacity = "1";
@@ -568,22 +484,81 @@ class GlobalCursorManager {
           d.target.style.opacity = "0";
         }
       });
-    } else {
-      if (this.canvas.style.opacity === "1") {
-        setTimeout(() => {
-          this.canvas.style.transition = cursorConfig.canvasFadeTransitionCss;
-          this.canvas.style.opacity = "0";
-        }, cursorConfig.cursorDisappearDelay);
-      }
-      this.cursors.forEach((d) => {
-        if (d.isActive && d.target) {
-          d.target.style.transition =
-            cursorConfig.nativeCursorRevealTransitionCss;
-          d.target.style.opacity = "1";
-        }
-      });
+      return;
     }
 
+    if (this.canvas.style.opacity === "1") {
+      setTimeout(() => {
+        this.canvas.style.transition = cursorConfig.canvasFadeTransitionCss;
+        this.canvas.style.opacity = "0";
+      }, cursorConfig.cursorDisappearDelay);
+    }
+
+    this.cursors.forEach((d) => {
+      if (d.isActive && d.target) {
+        d.target.style.transition =
+          cursorConfig.nativeCursorRevealTransitionCss;
+        d.target.style.opacity = "1";
+      }
+    });
+  }
+
+  /**
+   * loop 方法: 顶层渲染引擎, 控制每一帧的最终输出
+   */
+  loop() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    let isAnyAnimating = false;
+
+    for (const [id, data] of this.cursors) {
+      const el = data.target;
+      if (!el || !el.isConnected) {
+        this.cursors.delete(id);
+        continue;
+      }
+
+      const r = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+
+      const isNowActive =
+        style.visibility !== "hidden" &&
+        style.display !== "none" &&
+        !style.transform.includes("-10000px");
+
+      const hasMoved = r.left !== data.lastX || r.top !== data.lastY;
+
+      if (isNowActive && !data.isActive) {
+        data.isJumping = true;
+        data.jumpSource = globalCursorState.lastX
+          ? { x: globalCursorState.lastX, y: globalCursorState.lastY }
+          : null;
+      }
+
+      if (hasMoved && isNowActive) {
+        data.instance.updateSize(r.width, r.height);
+        data.instance.move(
+          r.left,
+          r.top,
+          data.isJumping ? data.jumpSource : null,
+        );
+        data.lastX = r.left;
+        data.lastY = r.top;
+        data.isJumping = false;
+      }
+
+      data.isActive = isNowActive;
+
+      if (isNowActive) {
+        const anim = data.instance.updateLoop(
+          this.isScrolling,
+          r.left >= 0 && r.top >= 0 && r.left <= window.innerWidth,
+        );
+        data.isAnimating = anim;
+        if (anim) isAnyAnimating = true;
+      }
+    }
+
+    this.updateVisibility(isAnyAnimating);
     requestAnimationFrame(this.loop.bind(this));
   }
 }
