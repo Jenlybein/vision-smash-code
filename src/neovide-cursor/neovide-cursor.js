@@ -28,11 +28,7 @@ const cursorConfig = {
 
 // === SECTION 2: 全局状态追踪 (Global State Tracking) ===
 
-/**
- * globalCursorState 对象
- * 记录全局范围内光标最后一次出现的位置, 用于光标在不同编辑器实例或分屏
- * 之间切换时, 能够提供一个合理的动画起始点, 防止动画从 [0,0] 坐标飞入
- */
+// 记录全局范围内光标最后一次出现的位置, 用于光标在不同编辑器实例或分屏之间切换时, 能够提供一个合理的动画起始点, 防止动画从 [0,0] 坐标飞入
 const globalCursorState = {
   lastX: null, // 最后记录的中心 X 坐标
   lastY: null, // 最后记录的中心 Y 坐标
@@ -43,22 +39,8 @@ const globalCursorState = {
 
 // === SECTION 3: 基础工具函数 (Utility Functions) ===
 
-const cursorResolveColor = (hex) => {
-  let h = hex.startsWith("#") ? hex.slice(1).toUpperCase() : hex.toUpperCase();
-  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-  if (h.length === 6) h += "FF";
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16),
-    a: parseInt(h.slice(6, 8), 16),
-  };
-};
-
-const cursorRgbaToCss = ({ r, g, b, a }) =>
-  `rgba(${r}, ${g}, ${b}, ${a / 255})`;
-
-const colorHexToRgbaCss = (hex, opacity = 1) => {
+// HEX → RGBA(255)
+const cursorHexToRgba = (hex, opacity = 1) => {
   let h = hex.startsWith("#") ? hex.slice(1) : hex;
   if (h.length === 3) h = h.replace(/(.)/g, "$1$1");
   if (h.length === 6) h += "FF";
@@ -69,6 +51,16 @@ const colorHexToRgbaCss = (hex, opacity = 1) => {
   return `rgba(${r},${g},${b},${a})`;
 };
 
+// 限制数值范围
+const cursorClamp = (v, min, max) => (v < min ? min : v > max ? max : v);
+
+// 向量归一化，长度为 1，保留方向信息
+const cursorNormalize = (v) => {
+  const l = Math.hypot(v.x, v.y);
+  return l ? { x: v.x / l, y: v.y / l } : { x: 0, y: 0 };
+};
+
+// 四个角点的相对坐标
 const cursorRelativeCorners = [
   { x: -0.5, y: -0.5 },
   { x: 0.5, y: -0.5 },
@@ -76,15 +68,8 @@ const cursorRelativeCorners = [
   { x: -0.5, y: 0.5 },
 ];
 
-const cursorClamp = (v, min, max) => (v < min ? min : v > max ? max : v);
-
-const cursorNormalize = (v) => {
-  const l = Math.hypot(v.x, v.y);
-  return l ? { x: v.x / l, y: v.y / l } : { x: 0, y: 0 };
-};
-
 // ================= 弹簧 =================
-
+// 弹簧动画
 class DampedSpringAnimation {
   constructor(l) {
     this.position = 0;
@@ -116,7 +101,7 @@ class DampedSpringAnimation {
 }
 
 // ================= Corner =================
-
+// 角点
 class Corner {
   constructor(rp) {
     this.rp = rp;
@@ -133,19 +118,19 @@ class Corner {
     ];
   }
 
+  getDest(c, dim) {
+    return {
+      x: c.x + this.rp.x * dim.width,
+      y: c.y + this.rp.y * dim.height,
+    };
+  }
+
   calculateDirectionAlignment(dim, center) {
     const dest = this.getDest(center, dim);
     const dx = dest.x - this.cp.x;
     const dy = dest.y - this.cp.y;
     const len = Math.hypot(dx, dy);
     return len ? (dx / len) * this.rpNorm.x + (dy / len) * this.rpNorm.y : 0;
-  }
-
-  getDest(c, dim) {
-    return {
-      x: c.x + this.rp.x * dim.width,
-      y: c.y + this.rp.y * dim.height,
-    };
   }
 
   jump(c, dim, rank) {
@@ -224,17 +209,15 @@ class Corner {
 
 // === SECTION 6: 单个光标实例创建器 (Cursor Instance Creator) ===
 
-/**
- * createNeovideCursor 工厂函数: 负责生成并管理一个完整的光标渲染逻辑
- */
+// 工厂函数: 负责生成并管理一个完整的光标渲染逻辑
 const createNeovideCursor = ({ canvas }) => {
   // 预计算颜色值, 减少绘图时的重复计算开销
-  const finalColorCss = colorHexToRgbaCss(
+  const finalColorCss = cursorHexToRgba(
     cursorConfig.tailColor,
     cursorConfig.tailOpacity,
   );
   const shadowColorCss =
-    cursorConfig.useShadow && colorHexToRgbaCss(cursorConfig.shadowColor);
+    cursorConfig.useShadow && cursorHexToRgba(cursorConfig.shadowColor);
 
   const context = canvas.getContext("2d");
   let cursorDimensions = { width: 8, height: 18 },
@@ -254,15 +237,12 @@ const createNeovideCursor = ({ canvas }) => {
     });
   };
   return {
-    /**
-     * move 方法: 外部驱动接口, 告诉插件光标的目标坐标
-     */
+    // move 方法: 外部驱动接口, 告诉插件光标的目标坐标
     move: (x, y, fromSource = null) => {
       if ((x <= 0 && y <= 0) || isNaN(x) || isNaN(y)) return;
       centerDest.x = x + cursorDimensions.width / 2;
       centerDest.y = y + cursorDimensions.height / 2;
-      // 修复: 将条件从 !initialized 改为 !initialized || fromSource
-      // 原因: 在同窗口分屏跳转时, initialized 已为 true, 但仍需要重新初始化角点位置以触发过渡动画
+
       if (!initialized || fromSource) {
         const src =
           fromSource ||
@@ -288,9 +268,7 @@ const createNeovideCursor = ({ canvas }) => {
       }
     },
 
-    /**
-     * updateLoop 方法: 每一帧执行的 Canvas 绘图循环
-     */
+    // updateLoop 方法: 每一帧执行的 Canvas 绘图循环
     updateLoop: (isS, draw) => {
       if (!initialized) return false;
       const now = performance.now(),
@@ -347,10 +325,7 @@ const createNeovideCursor = ({ canvas }) => {
 
 // === SECTION 7: 全局光标管理器 (Global Cursor Manager) ===
 
-/**
- * GlobalCursorManager 类: 系统的控制塔
- * 负责扫描 DOM 节点、同步多光标实例、控制原生光标的显隐以及渲染 Canvas
- */
+// GlobalCursorManager 类: 系统的控制塔：负责扫描 DOM 节点、同步多光标实例、控制原生光标的显隐以及渲染 Canvas
 class GlobalCursorManager {
   constructor() {
     this.cursors = new Map(); // 存储活跃光标实例及其对应的 DOM 元素
@@ -361,9 +336,7 @@ class GlobalCursorManager {
     this.init();
   }
 
-  /**
-   * init 方法: 启动环境初始化
-   */
+  // 启动环境初始化
   init() {
     // 注入全局样式: 禁用原生的光标平滑过渡, 否则物理引擎无法接管
     const style = document.createElement("style");
@@ -425,9 +398,7 @@ class GlobalCursorManager {
     this.syncCursors();
   }
 
-  /**
-   * scan 方法: 探测并匹配 DOM 元素与物理实例
-   */
+  // scan 方法: 探测并匹配 DOM 元素与物理实例
   syncCursors() {
     const els = document.querySelectorAll(".monaco-editor .cursor");
     const seen = new Set();
@@ -501,9 +472,7 @@ class GlobalCursorManager {
     });
   }
 
-  /**
-   * loop 方法: 顶层渲染引擎, 控制每一帧的最终输出
-   */
+  // loop 方法: 顶层渲染引擎, 控制每一帧的最终输出
   loop() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     let isAnyAnimating = false;
