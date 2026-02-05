@@ -58,6 +58,17 @@ const cursorResolveColor = (hex) => {
 const cursorRgbaToCss = ({ r, g, b, a }) =>
   `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
+const colorHexToRgbaCss = (hex, opacity = 1) => {
+  let h = hex.startsWith("#") ? hex.slice(1) : hex;
+  if (h.length === 3) h = h.replace(/(.)/g, "$1$1");
+  if (h.length === 6) h += "FF";
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const a = (parseInt(h.slice(6, 8), 16) / 255) * opacity;
+  return `rgba(${r},${g},${b},${a})`;
+};
+
 const cursorRelativeCorners = [
   { x: -0.5, y: -0.5 },
   { x: 0.5, y: -0.5 },
@@ -114,7 +125,6 @@ class Corner {
     this.pd = { x: -1e5, y: -1e5 };
     this.ax = new DampedSpringAnimation(cursorConfig.animationLength);
     this.ay = new DampedSpringAnimation(cursorConfig.animationLength);
-    this.targetDim = { width: 8, height: 18 };
     this.TRAIL_FACTORS = [
       cursorConfig.rank0TrailFactor,
       cursorConfig.rank1TrailFactor,
@@ -139,8 +149,6 @@ class Corner {
   }
 
   jump(c, dim, rank) {
-    this.targetDim = { ...dim };
-
     const dest = this.getDest(c, dim);
     const jv = {
       x: (dest.x - this.pd.x) / dim.width,
@@ -151,8 +159,7 @@ class Corner {
     const jvNorm = len ? { x: jv.x / len, y: jv.y / len } : { x: 0, y: 0 };
 
     const isShortMove =
-      Math.abs(jv.x) <= cursorConfig.shortMoveThreshold &&
-      Math.abs(jv.y) <= 0.001;
+      Math.hypot(jv.x, jv.y) <= cursorConfig.shortMoveThreshold;
 
     const baseTime = isShortMove
       ? cursorConfig.shortAnimationLength
@@ -187,11 +194,13 @@ class Corner {
     if (destX !== this.pd.x || destY !== this.pd.y) {
       this.ax.position = destX - this.cp.x;
       this.ay.position = destY - this.cp.y;
-      this.pd = { x: destX, y: destY };
+      this.pd.x = destX;
+      this.pd.y = destY;
     }
 
     if (imm) {
-      this.cp = { x: destX, y: destY };
+      this.cp.x = destX;
+      this.cp.y = destY;
       this.ax.reset();
       this.ay.reset();
       return false;
@@ -206,10 +215,8 @@ class Corner {
     this.ax.position = cursorClamp(this.ax.position, -maxD, maxD);
     this.ay.position = cursorClamp(this.ay.position, -maxD, maxD);
 
-    this.cp = {
-      x: destX - this.ax.position,
-      y: destY - this.ay.position,
-    };
+    this.cp.x = destX - this.ax.position;
+    this.cp.y = destY - this.ay.position;
 
     return Math.abs(this.ax.position) > 0.5 || Math.abs(this.ay.position) > 0.5;
   }
@@ -222,16 +229,12 @@ class Corner {
  */
 const createNeovideCursor = ({ canvas }) => {
   // 预计算颜色值, 减少绘图时的重复计算开销
-  const colorObj = cursorResolveColor(cursorConfig.tailColor),
-    finalColorCss = cursorRgbaToCss({
-      ...colorObj,
-      a: (colorObj.a * cursorConfig.tailOpacity) >> 0,
-    }),
-    shadowColorCss = cursorConfig.useShadow
-      ? cursorConfig.shadowColor === cursorConfig.tailColor
-        ? finalColorCss
-        : cursorRgbaToCss(cursorResolveColor(cursorConfig.shadowColor))
-      : null;
+  const finalColorCss = colorHexToRgbaCss(
+    cursorConfig.tailColor,
+    cursorConfig.tailOpacity,
+  );
+  const shadowColorCss =
+    cursorConfig.useShadow && colorHexToRgbaCss(cursorConfig.shadowColor);
 
   const context = canvas.getContext("2d");
   let cursorDimensions = { width: 8, height: 18 },
@@ -243,53 +246,36 @@ const createNeovideCursor = ({ canvas }) => {
   // 为该光标初始化四个独立物理角点
   const corners = cursorRelativeCorners.map((p) => new Corner(p));
 
+  const initCorners = (center, dim) => {
+    corners.forEach((c) => {
+      const d = c.getDest(center, dim);
+      c.cp = d;
+      c.pd = d;
+    });
+  };
   return {
     /**
      * move 方法: 外部驱动接口, 告诉插件光标的目标坐标
      */
     move: (x, y, fromSource = null) => {
       if ((x <= 0 && y <= 0) || isNaN(x) || isNaN(y)) return;
-      const newCenter = {
-        x: x + cursorDimensions.width / 2,
-        y: y + cursorDimensions.height / 2,
-      };
+      centerDest.x = x + cursorDimensions.width / 2;
+      centerDest.y = y + cursorDimensions.height / 2;
       // 修复: 将条件从 !initialized 改为 !initialized || fromSource
       // 原因: 在同窗口分屏跳转时, initialized 已为 true, 但仍需要重新初始化角点位置以触发过渡动画
       if (!initialized || fromSource) {
         const src =
           fromSource ||
-          (globalCursorState.lastX
-            ? {
-                x: globalCursorState.lastX,
-                y: globalCursorState.lastY,
-              }
-            : null);
-        if (src) {
-          const oldDim = {
-            width: globalCursorState.lastWidth || cursorDimensions.width,
-            height: globalCursorState.lastHeight || cursorDimensions.height,
-          };
-          corners.forEach((c) => {
-            c.targetDim = { ...oldDim };
-            const d = c.getDest({ x: src.x, y: src.y }, oldDim);
-            c.cp = { x: d.x, y: d.y };
-            c.pd = { x: d.x, y: d.y };
+          (globalCursorState.lastX && {
+            x: globalCursorState.lastX,
+            y: globalCursorState.lastY,
           });
-        } else {
-          // 无源坐标时, 直接在目标位置初始化
-          corners.forEach((c) => {
-            c.targetDim = { ...cursorDimensions };
-            const d = c.getDest(newCenter, cursorDimensions);
-            c.cp = { x: d.x, y: d.y };
-            c.pd = { x: d.x, y: d.y };
-          });
-        }
+        initCorners(src ?? centerDest, cursorDimensions);
         initialized = true;
       }
-      centerDest = newCenter;
       jumped = true; // 触发 Rank 重新分配
-      globalCursorState.lastX = newCenter.x;
-      globalCursorState.lastY = newCenter.y;
+      globalCursorState.lastX = centerDest.x;
+      globalCursorState.lastY = centerDest.y;
       globalCursorState.lastWidth = cursorDimensions.width;
       globalCursorState.lastHeight = cursorDimensions.height;
       globalCursorState.lastUpdated = Date.now();
@@ -313,17 +299,17 @@ const createNeovideCursor = ({ canvas }) => {
 
       if (jumped) {
         // 根据对齐度对四个角点进行排序, 从而分配不同的滞后系数
-        const ranks = corners
-          .map((c, i) => ({
-            i,
-            v: c.calculateDirectionAlignment(cursorDimensions, centerDest),
-          }))
-          .sort((a, b) => a.v - b.v)
-          .map((it, r) => ({ i: it.i, r }))
-          .reduce((acc, cur) => {
-            acc[cur.i] = cur.r;
-            return acc;
-          }, []);
+        const tmp = corners.map((c, i) => ({
+          i,
+          v: c.calculateDirectionAlignment(cursorDimensions, centerDest),
+        }));
+
+        tmp.sort((a, b) => a.v - b.v);
+
+        const ranks = [];
+        for (let r = 0; r < tmp.length; r++) {
+          ranks[tmp[r].i] = r;
+        }
 
         corners.forEach((c, i) =>
           c.jump(centerDest, cursorDimensions, ranks[i]),
@@ -371,6 +357,7 @@ class GlobalCursorManager {
     this.canvas = document.createElement("canvas");
     this.ctx = this.canvas.getContext("2d");
     this.isScrolling = false; // 滚动状态锁
+    this.winW = window.innerWidth;
     this.init();
   }
 
@@ -403,6 +390,7 @@ class GlobalCursorManager {
     document.body.appendChild(this.canvas);
 
     window.addEventListener("resize", () => {
+      this.winW = window.innerWidth;
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
     });
@@ -465,7 +453,6 @@ class GlobalCursorManager {
 
       this.cursors.set(el, {
         instance: inst,
-        el,
         lastX: r.left,
         lastY: r.top,
         isActive: false,
@@ -484,7 +471,10 @@ class GlobalCursorManager {
   updateVisibility(isAnyAnimating) {
     if (isAnyAnimating) {
       this.canvas.style.transition = "none";
-      this.canvas.style.opacity = "1";
+      if (this.canvas.style.opacity !== "1") {
+        this.canvas.style.transition = "none";
+        this.canvas.style.opacity = "1";
+      }
       this.cursors.forEach((d) => {
         if (d.isActive && d.target) {
           d.target.style.transition =
@@ -525,16 +515,20 @@ class GlobalCursorManager {
       }
 
       const r = el.getBoundingClientRect();
-      const style = getComputedStyle(el);
-
-      const isNowActive =
-        style.visibility !== "hidden" &&
-        style.display !== "none" &&
-        !style.transform.includes("-10000px");
-
       const hasMoved = r.left !== data.lastX || r.top !== data.lastY;
+      let isNowActive = data.isActive;
+      if (!data.isActive || hasMoved) {
+        const style = getComputedStyle(el);
+        isNowActive =
+          style.visibility !== "hidden" &&
+          style.display !== "none" &&
+          !style.transform.includes("-10000px");
+      }
 
-      if (!hasMoved && !data.isAnimating) continue;
+      if (!isNowActive) {
+        data.isActive = false;
+        continue;
+      }
 
       if (isNowActive && !data.isActive) {
         data.isJumping = true;
@@ -560,7 +554,7 @@ class GlobalCursorManager {
       if (isNowActive) {
         const anim = data.instance.updateLoop(
           this.isScrolling,
-          r.left >= 0 && r.top >= 0 && r.left <= window.innerWidth,
+          r.left >= 0 && r.top >= 0 && r.left <= this.winW,
         );
         data.isAnimating = anim;
         if (anim) isAnyAnimating = true;
