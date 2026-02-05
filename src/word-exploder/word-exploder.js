@@ -10,34 +10,34 @@ const explosionConfig = {
   offsetX: -10,
   offsetY: -20,
 
-  /* ========= 旋转设置 (新增) ========= */
-  fixedTilt: 0, // 固定起始角度 (单位：度)
-  randomTilt: 30, // 随机范围角度 (单位：度, 0代表不随机)
+  /* ========= 旋转设置 ========= */
+  fixedTilt: 10, // 固定起始角度 (单位：度)
+  randomTilt: 0, // 随机范围角度 (单位：度, 0代表不随机)
 
   /* ========= 1. 重力效果参数 (gravity) ========= */
   gravityConfig: {
-    gravity: 0.08,
-    initialVelocityY: -3.5,
-    initialVelocityX: 1,
-    lifeDecay: 0.015,
+    gravity: 0.08, // 重力加速度
+    initialVelocityY: -3.5, // 向上弹射力度
+    initialVelocityX: 1, // 横向扩散范围
+    lifeDecay: 0.015, // 消失速度
   },
 
   /* ========= 2. 缩放效果参数 (zoom) ========= */
   zoomConfig: {
-    initialScale: 1.5,
-    maxScale: 2,
-    minScale: 0.5,
-    zoomSpeed: 0.1,
-    shrinkSpeed: 0.01,
-    lifeDecay: 0.01,
+    initialScale: 1.5, // 初始大小倍数
+    maxScale: 2, // 最大扩张倍数
+    minScale: 0.5, // 缩小后的最终大小
+    zoomSpeed: 0.1, // 变大速率
+    shrinkSpeed: 0.01, // 最大后的缩小速率
+    lifeDecay: 0.01, // 透明度消失速度
   },
 
   /* ========= 3. 漂浮效果参数 (drift) ========= */
   driftConfig: {
-    upwardSpeed: 1.2,
-    swingRange: 15,
-    swingSpeed: 0.06,
-    lifeDecay: 0.02,
+    upwardSpeed: 1.2, // 向上漂浮速度
+    swingRange: 15, // 左右摆动幅度
+    swingSpeed: 0.06, // 摆动频率
+    lifeDecay: 0.02, // 消失速度
   },
 
   /* ========= 颜色列表 ========= */

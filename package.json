@@ -8,7 +8,7 @@
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "keywords": [
     "cursor",
     "animation",
@@ -439,25 +439,25 @@
         "order": 4,
         "properties": {
           "visionSmashCode.word.fontFamily": {
-            "order": 1,
+            "order": 0,
             "type": "string",
             "default": "Menlo, Monaco, 'Courier New', monospace",
             "description": "Font family for explosion text\n  爆炸文字的字体"
           },
           "visionSmashCode.word.fontSize": {
-            "order": 2,
+            "order": 1,
             "type": "number",
             "default": 25,
             "description": "Font size for explosion text\n  爆炸文字的字号"
           },
           "visionSmashCode.word.fontWeight": {
-            "order": 3,
+            "order": 2,
             "type": "string",
             "default": "bold",
             "description": "Font weight for explosion text\n  爆炸文字的粗细"
           },
           "visionSmashCode.word.mode": {
-            "order": 4,
+            "order": 3,
             "type": "string",
             "enum": [
               "random",
@@ -469,31 +469,31 @@
             "description": "Explosion animation mode\n  爆炸动画模式: random=随机, gravity=重力, zoom=缩放, drift=漂浮"
           },
           "visionSmashCode.word.offsetX": {
-            "order": 5,
+            "order": 4,
             "type": "number",
             "default": -15,
             "description": "X offset for explosion position\n  爆炸位置X轴偏移"
           },
           "visionSmashCode.word.offsetY": {
-            "order": 6,
+            "order": 5,
             "type": "number",
             "default": -20,
             "description": "Y offset for explosion position\n  爆炸位置Y轴偏移"
           },
           "visionSmashCode.word.fixedTilt": {
-            "order": 7,
+            "order": 6,
             "type": "number",
-            "default": 0,
+            "default": 10,
             "description": "Fixed starting rotation angle (degrees)\n  固定起始旋转角度（度）"
           },
           "visionSmashCode.word.randomTilt": {
-            "order": 8,
+            "order": 7,
             "type": "number",
             "default": 30,
             "description": "Random rotation range (degrees, 0 means no random)\n  随机旋转范围（度，0代表不随机）"
           },
           "visionSmashCode.word.gravity": {
-            "order": 7,
+            "order": 8,
             "type": "object",
             "description": "Gravity mode configuration\n  重力模式配置",
             "additionalProperties": false,
@@ -521,7 +521,7 @@
             }
           },
           "visionSmashCode.word.zoom": {
-            "order": 8,
+            "order": 9,
             "type": "object",
             "description": "Zoom mode configuration\n  缩放模式配置",
             "additionalProperties": false,
@@ -559,7 +559,7 @@
             }
           },
           "visionSmashCode.word.drift": {
-            "order": 9,
+            "order": 10,
             "type": "object",
             "description": "Drift mode configuration\n  漂浮模式配置",
             "additionalProperties": false,
@@ -587,7 +587,7 @@
             }
           },
           "visionSmashCode.word.colors": {
-            "order": 10,
+            "order": 11,
             "type": "array",
             "items": {
               "type": "string"
