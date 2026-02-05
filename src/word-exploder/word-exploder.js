@@ -4,18 +4,37 @@ const explosionConfig = {
   fontFamily: "Menlo, Monaco, 'Courier New', monospace",
   fontSize: 25,
   fontWeight: "bold",
+  mode: "drift", // 'random', 'gravity', 'zoom', 'drift'
 
-  /* ========= 特效位置 ========= */
+  /* ========= 特效位置偏移 ========= */
   offsetX: -15,
   offsetY: -25,
 
-  /* ========= 物理效果 ========= */
-  gravity: 0.075, // 重力
-  initialVelocityY: -3, // 向上弹射力度
-  initialVelocityX: 0.8, // 横向扩散范围
-  lifeDecay: 0.015, // 消失速度
+  /* ========= 1. 重力效果参数 (gravity) ========= */
+  gravityConfig: {
+    gravity: 0.08, // 重力加速度
+    initialVelocityY: -3.5, // 向上弹射力度
+    initialVelocityX: 1.0, // 横向扩散范围
+    lifeDecay: 0.015, // 消失速度
+  },
 
-  /* ========= 随机颜色列表设置 ========= */
+  /* ========= 2. 缩放效果参数 (zoom) ========= */
+  zoomConfig: {
+    initialScale: 0.5, // 初始大小倍数
+    maxScale: 2.0, // 最大扩张倍数
+    zoomSpeed: 0.15, // 变大速率 (每帧增加的scale)
+    lifeDecay: 0.02, // 变小时的消失速度 (影响透明度和生命周期)
+  },
+
+  /* ========= 3. 漂浮效果参数 (drift) ========= */
+  driftConfig: {
+    upwardSpeed: 1.2, // 向上漂浮速度
+    swingRange: 15, // 左右摆动幅度
+    swingSpeed: 0.06, // 摆动频率
+    lifeDecay: 0.02, // 消失速度
+  },
+
+  /* ========= 颜色列表 ========= */
   colors: [
     "#FFD700",
     "#FF6347",
@@ -30,13 +49,92 @@ const explosionConfig = {
 };
 /* __AUTO_CONFIG_END__ */
 
-// === SECTION 1: 特殊按键 ===
+// === 特殊按键配置 ===
 explosionConfig.specialKeys = {
   Enter: { text: "⏎", color: "#6495ED", sizeScale: 1 },
   Backspace: { text: "⌫", color: "#FF4500", sizeScale: 1 },
-  Delete: { text: "⌫", color: "#FF4500", sizeScale: 1 },
   " ": { text: "␣", color: "#808080", sizeScale: 1.2 },
-  Tab: { text: "⇥", color: "#808080", sizeScale: 1.2 },
+};
+
+// === 渲染策略引擎 ===
+const EFFECT_RENDERERS = {
+  // --- 重力模式 ---
+  gravity: {
+    init(p) {
+      const cfg = explosionConfig.gravityConfig;
+      p.vx = (Math.random() - 0.5) * 2 * cfg.initialVelocityX;
+      p.vy = cfg.initialVelocityY;
+      p.decay = cfg.lifeDecay;
+    },
+    update(p) {
+      const cfg = explosionConfig.gravityConfig;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += cfg.gravity;
+      p.life -= p.decay;
+    },
+    draw(ctx, p) {
+      this.commonDraw(ctx, p, explosionConfig.fontSize * p.baseScale);
+    },
+    commonDraw(ctx, p, size) {
+      ctx.font = `${explosionConfig.fontWeight} ${size}px ${explosionConfig.fontFamily}`;
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillText(p.text, p.x, p.y);
+    },
+  },
+
+  // --- 缩放模式 ---
+  zoom: {
+    init(p) {
+      const cfg = explosionConfig.zoomConfig;
+      p.currentScale = cfg.initialScale;
+      p.stage = "growing"; // 'growing' or 'fading'
+      p.decay = cfg.lifeDecay;
+    },
+    update(p) {
+      const cfg = explosionConfig.zoomConfig;
+      if (p.stage === "growing") {
+        p.currentScale += cfg.zoomSpeed;
+        if (p.currentScale >= cfg.maxScale) {
+          p.stage = "fading";
+        }
+      } else {
+        p.currentScale -= cfg.zoomSpeed * 0.5;
+        p.life -= p.decay;
+      }
+    },
+    draw(ctx, p) {
+      const size = explosionConfig.fontSize * p.currentScale * p.baseScale;
+      ctx.font = `${explosionConfig.fontWeight} ${size}px ${explosionConfig.fontFamily}`;
+      ctx.globalAlpha = Math.max(0, p.life);
+      // 稍微做点居中偏移处理，让缩放看起来是从中心进行的
+      const offset = (size - explosionConfig.fontSize) / 2;
+      ctx.fillText(p.text, p.x - offset, p.y);
+    },
+  },
+
+  // --- 漂浮模式 ---
+  drift: {
+    init(p) {
+      const cfg = explosionConfig.driftConfig;
+      p.originX = p.x;
+      p.time = 0;
+      p.decay = cfg.lifeDecay;
+    },
+    update(p) {
+      const cfg = explosionConfig.driftConfig;
+      p.time += cfg.swingSpeed;
+      p.y -= cfg.upwardSpeed;
+      p.x = p.originX + Math.sin(p.time) * cfg.swingRange;
+      p.life -= p.decay;
+    },
+    draw(ctx, p) {
+      const size = explosionConfig.fontSize * p.baseScale;
+      ctx.font = `${explosionConfig.fontWeight} ${size}px ${explosionConfig.fontFamily}`;
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillText(p.text, p.x, p.y);
+    },
+  },
 };
 
 // === SECTION 2: 基础工具函数 ===
@@ -118,25 +216,13 @@ class CursorExplosionEffect {
     this.canvas = document.createElement("canvas");
     this.ctx = this.canvas.getContext("2d");
     this.particles = [];
-    this.paused = false;
-
-    // 实例化光标管理器
-    this.cursorManager = new CursorManager();
-
+    this.cursorManager = new CursorManager(); // 假设 CursorManager 已定义
     this.init();
   }
 
   init() {
-    // 1. 初始化 Canvas
-    this.canvas.style.cssText = `
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 99999;
-    `;
+    this.canvas.style.cssText = `position: fixed; inset: 0; pointer-events: none; z-index: 99999;`;
     document.body.appendChild(this.canvas);
-
-    // 2. 监听调整大小
     const resize = () => {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
@@ -144,100 +230,78 @@ class CursorExplosionEffect {
     window.addEventListener("resize", resize);
     resize();
 
-    // 3. 监听可见性
-    document.addEventListener("visibilitychange", () => {
-      this.paused = document.hidden;
-    });
-
-    // 4. 监听键盘输入
     window.addEventListener("keydown", (e) => {
-      if (["Control", "Alt", "Shift", "Meta", "CapsLock"].includes(e.key))
-        return;
-      this.handleInput(e.key);
+      if (["Control", "Alt", "Shift", "Meta"].includes(e.key)) return;
+      this.spawn(e.key);
     });
-
-    // 5. 启动渲染循环
     this.loop();
   }
 
-  // 处理输入事件：获取所有光标位置并在每个位置生成爆炸
-  handleInput(key) {
+  spawn(key) {
     const positions = this.cursorManager.getAllCursorPositions();
-
-    // 如果没有找到光标，不执行任何操作
     if (positions.length === 0) return;
 
-    // 确定文字样式（只需计算一次）
     let text = key;
-    let color = getRandomColor();
-    let scale = 1;
+    let color =
+      explosionConfig.colors[
+        Math.floor(Math.random() * explosionConfig.colors.length)
+      ];
+    let baseScale = 1;
 
     if (explosionConfig.specialKeys[key]) {
-      const config = explosionConfig.specialKeys[key];
-      text = config.text;
-      color = config.color;
-      scale = config.sizeScale;
-    } else if (key.length > 1) {
-      // text = key[0].toUpperCase();
+      const s = explosionConfig.specialKeys[key];
+      text = s.text;
+      color = s.color;
+      baseScale = s.sizeScale;
     }
 
-    // 遍历所有光标位置生成粒子
-    positions.forEach((pos) => {
-      this.createParticle(pos, text, color, scale);
-    });
-  }
+    // 确定模式
+    let mode = explosionConfig.mode;
+    if (mode === "random") {
+      const modes = Object.keys(EFFECT_RENDERERS);
+      mode = modes[Math.floor(Math.random() * modes.length)];
+    }
 
-  createParticle(pos, text, color, scale) {
-    this.particles.push({
-      x: pos.x + explosionConfig.offsetX,
-      y: pos.y + explosionConfig.offsetY,
-      text: text,
-      color: color,
-      scale: scale,
-      vx: getRandomRange(
-        -explosionConfig.initialVelocityX,
-        explosionConfig.initialVelocityX,
-      ),
-      vy: explosionConfig.initialVelocityY * (scale > 1.2 ? 1.3 : 1),
-      life: 1.0,
-      font: `${explosionConfig.fontWeight} ${explosionConfig.fontSize * scale}px ${explosionConfig.fontFamily}`,
+    positions.forEach((pos) => {
+      const p = {
+        mode,
+        text,
+        color,
+        baseScale,
+        x: pos.x + explosionConfig.offsetX,
+        y: pos.y + explosionConfig.offsetY,
+        life: 1.0,
+      };
+      // 初始化对应模式的特有属性
+      EFFECT_RENDERERS[mode].init(p);
+      this.particles.push(p);
     });
   }
 
   draw() {
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
+      const renderer = EFFECT_RENDERERS[p.mode];
 
-      // 物理计算
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += explosionConfig.gravity;
-      p.life -= explosionConfig.lifeDecay;
+      renderer.update(p);
 
       if (p.life <= 0) {
         this.particles.splice(i, 1);
         continue;
       }
 
-      ctx.save();
-      ctx.font = p.font;
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = p.life;
-
-      // 阴影发光效果
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 8;
-
-      ctx.fillText(p.text, p.x, p.y + explosionConfig.fontSize * p.scale);
-      ctx.restore();
+      this.ctx.save();
+      this.ctx.fillStyle = p.color;
+      this.ctx.shadowColor = p.color;
+      this.ctx.shadowBlur = 8;
+      renderer.draw(this.ctx, p);
+      this.ctx.restore();
     }
   }
 
   loop() {
-    if (!this.paused) this.draw();
+    this.draw();
     requestAnimationFrame(() => this.loop());
   }
 }
