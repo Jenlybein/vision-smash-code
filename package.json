@@ -8,7 +8,7 @@
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "keywords": [
     "cursor",
     "animation",
@@ -54,6 +54,7 @@
     "configuration": [
       {
         "title": "Base Settings - 基本配置",
+        "order": 0,
         "properties": {
           "visionSmashCode.base.cursor": {
             "type": "boolean",
@@ -64,6 +65,11 @@
             "type": "boolean",
             "default": false,
             "description": "Enable window animations\n  启用窗口动效"
+          },
+          "visionSmashCode.base.word": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable word explosion effects\n  启用打字文字爆炸效果"
           },
           "visionSmashCode.base.gradient": {
             "type": "boolean",
@@ -79,6 +85,7 @@
       },
       {
         "title": "Cursor Effects - 光标特效设置",
+        "order": 1,
         "properties": {
           "visionSmashCode.cursor.tailColor": {
             "order": 0,
@@ -208,6 +215,7 @@
       },
       {
         "title": "Animation Settings - 调整窗口时的动效设置",
+        "order": 3,
         "properties": {
           "visionSmashCode.animations.Smooth-Mode": {
             "order": 0,
@@ -329,6 +337,7 @@
       },
       {
         "title": "Mouse Tail Effects - 鼠标尾迹效果设置",
+        "order": 2,
         "properties": {
           "visionSmashCode.mouse.mode": {
             "order": 0,
@@ -426,7 +435,179 @@
         }
       },
       {
-        "title": "Theme Enhancements - 主题增强设置",
+        "title": "Word Explosion Effects - 打字文字爆炸效果设置",
+        "order": 4,
+        "properties": {
+          "visionSmashCode.word.fontFamily": {
+            "order": 1,
+            "type": "string",
+            "default": "Menlo, Monaco, 'Courier New', monospace",
+            "description": "Font family for explosion text\n  爆炸文字的字体"
+          },
+          "visionSmashCode.word.fontSize": {
+            "order": 2,
+            "type": "number",
+            "default": 25,
+            "description": "Font size for explosion text\n  爆炸文字的字号"
+          },
+          "visionSmashCode.word.fontWeight": {
+            "order": 3,
+            "type": "string",
+            "default": "bold",
+            "description": "Font weight for explosion text\n  爆炸文字的粗细"
+          },
+          "visionSmashCode.word.mode": {
+            "order": 4,
+            "type": "string",
+            "enum": [
+              "random",
+              "gravity",
+              "zoom",
+              "drift"
+            ],
+            "default": "gravity",
+            "description": "Explosion animation mode\n  爆炸动画模式: random=随机, gravity=重力, zoom=缩放, drift=漂浮"
+          },
+          "visionSmashCode.word.offsetX": {
+            "order": 5,
+            "type": "number",
+            "default": -15,
+            "description": "X offset for explosion position\n  爆炸位置X轴偏移"
+          },
+          "visionSmashCode.word.offsetY": {
+            "order": 6,
+            "type": "number",
+            "default": -20,
+            "description": "Y offset for explosion position\n  爆炸位置Y轴偏移"
+          },
+          "visionSmashCode.word.fixedTilt": {
+            "order": 7,
+            "type": "number",
+            "default": 0,
+            "description": "Fixed starting rotation angle (degrees)\n  固定起始旋转角度（度）"
+          },
+          "visionSmashCode.word.randomTilt": {
+            "order": 8,
+            "type": "number",
+            "default": 30,
+            "description": "Random rotation range (degrees, 0 means no random)\n  随机旋转范围（度，0代表不随机）"
+          },
+          "visionSmashCode.word.gravity": {
+            "order": 7,
+            "type": "object",
+            "description": "Gravity mode configuration\n  重力模式配置",
+            "additionalProperties": false,
+            "properties": {
+              "gravity": {
+                "type": "number",
+                "default": 0.08,
+                "description": "Gravity acceleration\n  重力加速度"
+              },
+              "initialVelocityY": {
+                "type": "number",
+                "default": -3.5,
+                "description": "Upward ejection force\n  向上弹射力度"
+              },
+              "initialVelocityX": {
+                "type": "number",
+                "default": 1.0,
+                "description": "Horizontal spread range\n  横向扩散范围"
+              },
+              "lifeDecay": {
+                "type": "number",
+                "default": 0.015,
+                "description": "Disappear speed\n  消失速度"
+              }
+            }
+          },
+          "visionSmashCode.word.zoom": {
+            "order": 8,
+            "type": "object",
+            "description": "Zoom mode configuration\n  缩放模式配置",
+            "additionalProperties": false,
+            "properties": {
+              "initialScale": {
+                "type": "number",
+                "default": 1.5,
+                "description": "Initial size multiplier\n  初始大小倍数"
+              },
+              "maxScale": {
+                "type": "number",
+                "default": 2,
+                "description": "Max expansion multiplier\n  最大扩张倍数"
+              },
+              "minScale": {
+                "type": "number",
+                "default": 0.5,
+                "description": "Final size after shrinking\n  缩小后的最终大小"
+              },
+              "zoomSpeed": {
+                "type": "number",
+                "default": 0.1,
+                "description": "Growth rate per frame\n  变大速率"
+              },
+              "shrinkSpeed": {
+                "type": "number",
+                "default": 0.01,
+                "description": "Shrink rate after reaching max\n  最大后的缩小速率"
+              },
+              "lifeDecay": {
+                "type": "number",
+                "default": 0.01,
+                "description": "Disappear speed when shrinking\n  变小时的消失速度"
+              }
+            }
+          },
+          "visionSmashCode.word.drift": {
+            "order": 9,
+            "type": "object",
+            "description": "Drift mode configuration\n  漂浮模式配置",
+            "additionalProperties": false,
+            "properties": {
+              "upwardSpeed": {
+                "type": "number",
+                "default": 1.2,
+                "description": "Upward floating speed\n  向上漂浮速度"
+              },
+              "swingRange": {
+                "type": "number",
+                "default": 15,
+                "description": "Left-right swing amplitude\n  左右摆动幅度"
+              },
+              "swingSpeed": {
+                "type": "number",
+                "default": 0.06,
+                "description": "Swing frequency\n  摆动频率"
+              },
+              "lifeDecay": {
+                "type": "number",
+                "default": 0.02,
+                "description": "Disappear speed\n  消失速度"
+              }
+            }
+          },
+          "visionSmashCode.word.colors": {
+            "order": 10,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "#FFD700",
+              "#FF6347",
+              "#00BFFF",
+              "#32CD32",
+              "#FF69B4",
+              "#8A2BE2",
+              "#FFA500",
+              "#00FA9A",
+              "#FF00FF"
+            ],
+            "description": "Color list for explosion text\n  爆炸文字的颜色列表"
+          }
+        }
+      },
+      {
         "properties": {
           "visionSmashCode.gradient.editor-hover": {
             "type": "boolean",

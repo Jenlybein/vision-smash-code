@@ -4,6 +4,7 @@ import * as cursor from "./src/install/cursor-inject.js";
 import * as animation from "./src/install/animation-inject.js";
 import * as gradient from "./src/install/gradient-inject.js";
 import * as mouse from "./src/install/mouse-inject.js";
+import * as word from "./src/install/word-inject.js";
 import * as util from "./src/common/utils.js";
 
 // 模块声明表
@@ -31,6 +32,12 @@ const modules = {
     scope: "visionSmashCode.mouse",
     baseKey: "mouse",
     api: mouse,
+  },
+  word: {
+    filePath: "",
+    scope: "visionSmashCode.word",
+    baseKey: "word",
+    api: word,
   },
 };
 

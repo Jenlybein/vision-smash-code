@@ -4,34 +4,40 @@ const explosionConfig = {
   fontFamily: "Menlo, Monaco, 'Courier New', monospace",
   fontSize: 25,
   fontWeight: "bold",
-  mode: "drift", // 'random', 'gravity', 'zoom', 'drift'
+  mode: "zoom", // 'random', 'gravity', 'zoom', 'drift'
 
   /* ========= 特效位置偏移 ========= */
-  offsetX: -15,
-  offsetY: -25,
+  offsetX: -10,
+  offsetY: -20,
+
+  /* ========= 旋转设置 (新增) ========= */
+  fixedTilt: 0, // 固定起始角度 (单位：度)
+  randomTilt: 30, // 随机范围角度 (单位：度, 0代表不随机)
 
   /* ========= 1. 重力效果参数 (gravity) ========= */
   gravityConfig: {
-    gravity: 0.08, // 重力加速度
-    initialVelocityY: -3.5, // 向上弹射力度
-    initialVelocityX: 1.0, // 横向扩散范围
-    lifeDecay: 0.015, // 消失速度
+    gravity: 0.08,
+    initialVelocityY: -3.5,
+    initialVelocityX: 1,
+    lifeDecay: 0.015,
   },
 
   /* ========= 2. 缩放效果参数 (zoom) ========= */
   zoomConfig: {
-    initialScale: 0.5, // 初始大小倍数
-    maxScale: 2.0, // 最大扩张倍数
-    zoomSpeed: 0.15, // 变大速率 (每帧增加的scale)
-    lifeDecay: 0.02, // 变小时的消失速度 (影响透明度和生命周期)
+    initialScale: 1.5,
+    maxScale: 2,
+    minScale: 0.5,
+    zoomSpeed: 0.1,
+    shrinkSpeed: 0.01,
+    lifeDecay: 0.01,
   },
 
   /* ========= 3. 漂浮效果参数 (drift) ========= */
   driftConfig: {
-    upwardSpeed: 1.2, // 向上漂浮速度
-    swingRange: 15, // 左右摆动幅度
-    swingSpeed: 0.06, // 摆动频率
-    lifeDecay: 0.02, // 消失速度
+    upwardSpeed: 1.2,
+    swingRange: 15,
+    swingSpeed: 0.06,
+    lifeDecay: 0.02,
   },
 
   /* ========= 颜色列表 ========= */
@@ -58,7 +64,6 @@ explosionConfig.specialKeys = {
 
 // === 渲染策略引擎 ===
 const EFFECT_RENDERERS = {
-  // --- 重力模式 ---
   gravity: {
     init(p) {
       const cfg = explosionConfig.gravityConfig;
@@ -74,52 +79,41 @@ const EFFECT_RENDERERS = {
       p.life -= p.decay;
     },
     draw(ctx, p) {
-      this.commonDraw(ctx, p, explosionConfig.fontSize * p.baseScale);
-    },
-    commonDraw(ctx, p, size) {
+      const size = explosionConfig.fontSize * p.baseScale;
       ctx.font = `${explosionConfig.fontWeight} ${size}px ${explosionConfig.fontFamily}`;
-      ctx.globalAlpha = Math.max(0, p.life);
-      ctx.fillText(p.text, p.x, p.y);
+      ctx.fillText(p.text, 0, 0); // 在(0,0)绘图，位置由外层translate控制
     },
   },
 
-  // --- 缩放模式 ---
   zoom: {
     init(p) {
       const cfg = explosionConfig.zoomConfig;
       p.currentScale = cfg.initialScale;
-      p.stage = "growing"; // 'growing' or 'fading'
+      p.stage = "growing";
       p.decay = cfg.lifeDecay;
     },
     update(p) {
       const cfg = explosionConfig.zoomConfig;
       if (p.stage === "growing") {
         p.currentScale += cfg.zoomSpeed;
-        if (p.currentScale >= cfg.maxScale) {
-          p.stage = "fading";
-        }
+        if (p.currentScale >= cfg.maxScale) p.stage = "shrinking";
       } else {
-        p.currentScale -= cfg.zoomSpeed * 0.5;
+        if (p.currentScale > cfg.minScale) p.currentScale -= cfg.shrinkSpeed;
         p.life -= p.decay;
       }
     },
     draw(ctx, p) {
       const size = explosionConfig.fontSize * p.currentScale * p.baseScale;
       ctx.font = `${explosionConfig.fontWeight} ${size}px ${explosionConfig.fontFamily}`;
-      ctx.globalAlpha = Math.max(0, p.life);
-      // 稍微做点居中偏移处理，让缩放看起来是从中心进行的
-      const offset = (size - explosionConfig.fontSize) / 2;
-      ctx.fillText(p.text, p.x - offset, p.y);
+      ctx.fillText(p.text, 0, 0);
     },
   },
 
-  // --- 漂浮模式 ---
   drift: {
     init(p) {
-      const cfg = explosionConfig.driftConfig;
       p.originX = p.x;
       p.time = 0;
-      p.decay = cfg.lifeDecay;
+      p.decay = explosionConfig.driftConfig.lifeDecay;
     },
     update(p) {
       const cfg = explosionConfig.driftConfig;
@@ -131,8 +125,7 @@ const EFFECT_RENDERERS = {
     draw(ctx, p) {
       const size = explosionConfig.fontSize * p.baseScale;
       ctx.font = `${explosionConfig.fontWeight} ${size}px ${explosionConfig.fontFamily}`;
-      ctx.globalAlpha = Math.max(0, p.life);
-      ctx.fillText(p.text, p.x, p.y);
+      ctx.fillText(p.text, 0, 0);
     },
   },
 };
@@ -216,7 +209,7 @@ class CursorExplosionEffect {
     this.canvas = document.createElement("canvas");
     this.ctx = this.canvas.getContext("2d");
     this.particles = [];
-    this.cursorManager = new CursorManager(); // 假设 CursorManager 已定义
+    this.cursorManager = new CursorManager();
     this.init();
   }
 
@@ -255,7 +248,12 @@ class CursorExplosionEffect {
       baseScale = s.sizeScale;
     }
 
-    // 确定模式
+    // 计算旋转角度 (转为弧度)
+    const degToRad = (deg) => (deg * Math.PI) / 180;
+    const baseRotation = degToRad(explosionConfig.fixedTilt);
+    const randomRange = degToRad(explosionConfig.randomTilt);
+    const rotation = baseRotation + (Math.random() - 0.5) * randomRange;
+
     let mode = explosionConfig.mode;
     if (mode === "random") {
       const modes = Object.keys(EFFECT_RENDERERS);
@@ -268,11 +266,11 @@ class CursorExplosionEffect {
         text,
         color,
         baseScale,
+        rotation, // 存储每个粒子独有的角度
         x: pos.x + explosionConfig.offsetX,
         y: pos.y + explosionConfig.offsetY,
         life: 1.0,
       };
-      // 初始化对应模式的特有属性
       EFFECT_RENDERERS[mode].init(p);
       this.particles.push(p);
     });
@@ -292,10 +290,24 @@ class CursorExplosionEffect {
       }
 
       this.ctx.save();
+
+      // 1. 移动绘图中心到粒子坐标
+      this.ctx.translate(p.x, p.y);
+
+      // 2. 旋转画布
+      this.ctx.rotate(p.rotation);
+
+      // 3. 设置样式
+      this.ctx.textAlign = "center";
+      this.ctx.textBaseline = "middle";
       this.ctx.fillStyle = p.color;
       this.ctx.shadowColor = p.color;
       this.ctx.shadowBlur = 8;
+      this.ctx.globalAlpha = Math.max(0, p.life);
+
+      // 4. 执行绘图
       renderer.draw(this.ctx, p);
+
       this.ctx.restore();
     }
   }
