@@ -87,14 +87,22 @@ This is because Custom CSS and JS Loader modifies VSCode's internal files. This 
 
   - Supports various animation durations and easing effects
 
+  ### 🆚Typing Effects
+
+  - Multiple typing effects
+
+    ![word1](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word1.gif) ![word2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word2.gif) ![word3](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word3.gif) ![word4](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word4.gif)
+
+  - Customizable colors and adjustable behavior for different modes
+
   ### 🟪 Cursor Trail Effects
-
+  
   - Smooth cursor trailing animations that make cursor movement more lively
-
+  
     ![linenumber](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/linenumber.gif)
-
+  
   - Customizable trail color, opacity, and glow effects
-
+  
   - Supports various animation durations and easing effects
 
 ## 📦 Installation

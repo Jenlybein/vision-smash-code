@@ -87,6 +87,14 @@
 
 - 支持多种动画时长和缓动效果
 
+### 🆚打字特效
+
+- 多种打字特效
+
+  ![word1](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word1.gif) ![word2](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word2.gif) ![word3](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word3.gif) ![word4](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/word4.gif)
+
+- 可自定义颜色、调整各种模式的表现
+
 ### 🟪光标拖尾特效
 
 - 流畅的光标拖尾动画，让光标移动更加灵动
