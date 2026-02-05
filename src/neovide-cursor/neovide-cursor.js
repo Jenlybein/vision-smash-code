@@ -5,10 +5,9 @@ const cursorConfig = {
   useShadow: true,
   shadowColor: "#FFC0CB",
   shadowBlurFactor: 0.6,
-  cursorUpdatePollingRate: 100,
   cursorDisappearDelay: 50,
   cursorFadeOutDuration: 0.075,
-  animationLength: 0.125,
+  animationLength: 0.1,
   shortAnimationLength: 0.05,
   shortMoveThreshold: 8,
   rank0TrailFactor: 1,
@@ -18,8 +17,8 @@ const cursorConfig = {
   useHardSnap: true,
   leadingSnapFactor: 0.1,
   leadingSnapThreshold: 0.5,
-  animationResetThreshold: 0.075,
-  maxTrailDistanceFactor: 100,
+  animationResetThreshold: 0.09,
+  maxTrailDistanceFactor: 60,
   snapAnimationLength: 0.02,
   canvasFadeTransitionCss: "opacity 0.075s ease-out",
   nativeCursorDisappearTransitionCss: "opacity 0s ease-out",
@@ -421,28 +420,34 @@ class GlobalCursorManager {
       { capture: true, passive: true },
     );
 
+    this.initObserver();
     this.loop();
-    setInterval(() => this.scan(), cursorConfig.cursorUpdatePollingRate);
+  }
+
+  initObserver() {
+    const observer = new MutationObserver(() => {
+      this.syncCursors();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    this.syncCursors();
   }
 
   /**
    * scan 方法: 探测并匹配 DOM 元素与物理实例
    */
-  scan() {
-    const found = new Set();
-    const els = /** @type {NodeListOf<HTMLElement>} */ (
-      document.querySelectorAll(".monaco-editor .cursor")
-    );
+  syncCursors() {
+    const els = document.querySelectorAll(".monaco-editor .cursor");
+    const seen = new Set();
 
     els.forEach((el) => {
-      let id = el.dataset.cursorId;
-      if (!id) {
-        id = "c" + Math.random().toString(36).slice(2, 7);
-        el.dataset.cursorId = id;
-      }
-      found.add(id);
+      seen.add(el);
 
-      if (this.cursors.has(id)) return;
+      if (this.cursors.has(el)) return;
 
       const r = el.getBoundingClientRect();
       if (r.left <= 0 && r.top <= 0) return;
@@ -458,17 +463,20 @@ class GlobalCursorManager {
           : null,
       );
 
-      this.cursors.set(id, {
+      this.cursors.set(el, {
         instance: inst,
-        target: el,
+        el,
         lastX: r.left,
         lastY: r.top,
         isActive: false,
       });
     });
 
-    for (const id of this.cursors.keys()) {
-      if (!found.has(id)) this.cursors.delete(id);
+    // 回收不存在的光标
+    for (const el of this.cursors.keys()) {
+      if (!seen.has(el) || !el.isConnected) {
+        this.cursors.delete(el);
+      }
     }
   }
 
@@ -510,10 +518,9 @@ class GlobalCursorManager {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     let isAnyAnimating = false;
 
-    for (const [id, data] of this.cursors) {
-      const el = data.target;
-      if (!el || !el.isConnected) {
-        this.cursors.delete(id);
+    for (const [el, data] of this.cursors) {
+      if (!el.isConnected) {
+        this.cursors.delete(el);
         continue;
       }
 
@@ -526,6 +533,8 @@ class GlobalCursorManager {
         !style.transform.includes("-10000px");
 
       const hasMoved = r.left !== data.lastX || r.top !== data.lastY;
+
+      if (!hasMoved && !data.isAnimating) continue;
 
       if (isNowActive && !data.isActive) {
         data.isJumping = true;

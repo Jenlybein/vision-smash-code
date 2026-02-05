@@ -115,7 +115,7 @@
           "visionSmashCode.cursor.animationLength": {
             "order": 5,
             "type": "number",
-            "default": 0.125,
+            "default": 0.1,
             "description": "Animation length (seconds)\n  标准动画时长 (秒)"
           },
           "visionSmashCode.cursor.shortAnimationLength": {
@@ -177,13 +177,13 @@
           "visionSmashCode.cursor.animationResetThreshold": {
             "order": 15,
             "type": "number",
-            "default": 0.075,
+            "default": 0.09,
             "description": "Animation reset threshold (seconds)\n  动画重置阈值 (秒)"
           },
           "visionSmashCode.cursor.maxTrailDistanceFactor": {
             "order": 16,
             "type": "number",
-            "default": 100,
+            "default": 60,
             "description": "Max stretch factor\n  最大拉伸 (倍数)"
           },
           "visionSmashCode.cursor.snapAnimationLength": {
@@ -191,13 +191,6 @@
             "type": "number",
             "default": 0.02,
             "description": "Snap animation duration (seconds)\n  瞬移时长 (秒)"
-          },
-          "visionSmashCode.cursor.cursorUpdatePollingRate": {
-            "order": 18,
-            "type": "integer",
-            "default": 100,
-            "minimum": 50,
-            "description": "Cursor update polling rate (ms)\n  扫描频率 (毫秒，影响性能，不建议小于100)"
           },
           "visionSmashCode.cursor.cursorDisappearDelay": {
             "order": 19,

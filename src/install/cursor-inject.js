@@ -36,7 +36,6 @@ function getCursorConfig() {
     shadowColor: vsConfig.get("shadowColor", tailColor),
     shadowBlurFactor: vsConfig.get("shadowBlurFactor", 0.5),
     // 全局管理
-    cursorUpdatePollingRate: vsConfig.get("cursorUpdatePollingRate", 100),
     cursorDisappearDelay: vsConfig.get("cursorDisappearDelay", 50),
     cursorFadeOutDuration: fadeSeconds,
     // 动画时间
