@@ -1,29 +1,29 @@
 /* __AUTO_CONFIG_START__ */
 const cursorConfig = {
-  "tailColor": "#FFC0CB",
-  "tailOpacity": 1,
-  "useShadow": true,
-  "shadowColor": "#FFC0CB",
-  "shadowBlurFactor": 0.6,
-  "cursorUpdatePollingRate": 100,
-  "cursorDisappearDelay": 50,
-  "cursorFadeOutDuration": 0.075,
-  "animationLength": 0.125,
-  "shortAnimationLength": 0.05,
-  "shortMoveThreshold": 8,
-  "rank0TrailFactor": 1,
-  "rank1TrailFactor": 0.9,
-  "rank2TrailFactor": 0.5,
-  "rank3TrailFactor": 0.3,
-  "useHardSnap": true,
-  "leadingSnapFactor": 0.1,
-  "leadingSnapThreshold": 0.5,
-  "animationResetThreshold": 0.075,
-  "maxTrailDistanceFactor": 100,
-  "snapAnimationLength": 0.02,
-  "canvasFadeTransitionCss": "opacity 0.075s ease-out",
-  "nativeCursorDisappearTransitionCss": "opacity 0s ease-out",
-  "nativeCursorRevealTransitionCss": "opacity 0.075s ease-in"
+  tailColor: "#FFC0CB",
+  tailOpacity: 1,
+  useShadow: true,
+  shadowColor: "#FFC0CB",
+  shadowBlurFactor: 0.6,
+  cursorUpdatePollingRate: 100,
+  cursorDisappearDelay: 50,
+  cursorFadeOutDuration: 0.075,
+  animationLength: 0.125,
+  shortAnimationLength: 0.05,
+  shortMoveThreshold: 8,
+  rank0TrailFactor: 1,
+  rank1TrailFactor: 0.9,
+  rank2TrailFactor: 0.5,
+  rank3TrailFactor: 0.3,
+  useHardSnap: true,
+  leadingSnapFactor: 0.1,
+  leadingSnapThreshold: 0.5,
+  animationResetThreshold: 0.075,
+  maxTrailDistanceFactor: 100,
+  snapAnimationLength: 0.02,
+  canvasFadeTransitionCss: "opacity 0.075s ease-out",
+  nativeCursorDisappearTransitionCss: "opacity 0s ease-out",
+  nativeCursorRevealTransitionCss: "opacity 0.075s ease-in",
 };
 /* __AUTO_CONFIG_END__ */
 
@@ -63,15 +63,6 @@ const cursorResolveColor = (hex) => {
 const cursorRgbaToCss = ({ r, g, b, a }) =>
   `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-// 数值限幅器: 确保一个数值被强制锁定在指定的最小和最大范围之间
-const cursorClamp = (value, min, max) => Math.min(Math.max(value, min), max);
-
-// 2D 向量归一化: 计算向量的长度并将其缩减为 1, 从而只提取出方向信息
-const cursorNormalize = (v) => {
-  const l = Math.hypot(v.x, v.y);
-  return l ? { x: v.x / l, y: v.y / l } : { x: 0, y: 0 };
-};
-
 // 定义光标四个角点的局部坐标参考系 (以中心点为原点)
 const cursorRelativeCorners = [
   { x: -0.5, y: -0.5 }, // 左上 (Top-Left)
@@ -79,111 +70,114 @@ const cursorRelativeCorners = [
   { x: 0.5, y: 0.5 }, // 右下 (Bottom-Right)
   { x: -0.5, y: 0.5 }, // 左下 (Bottom-Left)
 ];
+// ================= 工具函数 =================
 
-// === SECTION 4: 阻尼弹簧物理模型 (Damped Spring Animation) ===
+const cursorClamp = (v, min, max) => (v < min ? min : v > max ? max : v);
 
-/**
- * DampedSpringAnimation 类: 模拟受阻尼限制的物体运动
- * 采用临界阻尼公式, 能够确保物体以最快速度且不产生多次震荡的方式回归目标位置
- */
+const cursorNormalize = (v) => {
+  const l = Math.hypot(v.x, v.y);
+  if (!l) return { x: 0, y: 0 };
+  return { x: v.x / l, y: v.y / l };
+};
+
+// ================= 弹簧 =================
+
 class DampedSpringAnimation {
   constructor(l) {
-    this.position = 0; // 偏移量 (当前距离目标的距离, 为 0 代表已重合)
-    this.velocity = 0; // 当前运动速度
-    this.animationLength = l; // 时间常数 (数值越小, 弹簧越硬, 移动越快)
+    this.position = 0;
+    this.velocity = 0;
+    this.animationLength = l;
   }
 
-  /**
-   * update 方法: 根据时间增量 dt 推进物理模拟
-   * 逻辑: 根据经典物理公式计算下一时刻的位置和速度
-   */
   update(dt) {
     if (this.animationLength <= dt || Math.abs(this.position) < 0.001) {
-      this.reset();
+      this.position = 0;
+      this.velocity = 0;
       return false;
     }
-    const o = 4.0 / this.animationLength,
-      a = this.position,
-      b = this.position * o + this.velocity,
-      c = Math.exp(-o * dt);
+    const o = 4.0 / this.animationLength;
+    const a = this.position;
+    const b = this.position * o + this.velocity;
+    const c = Math.exp(-o * dt);
+
     this.position = (a + b * dt) * c;
     this.velocity = c * (-a * o - b * dt * o + b);
+
     return Math.abs(this.position) >= 0.01;
   }
 
-  /**
-   * reset 方法: 清除动能与位移, 瞬间静止
-   */
   reset() {
     this.position = 0;
     this.velocity = 0;
   }
 }
 
-// === SECTION 5: 单个角点控制 (Corner Control) ===
+// ================= Corner =================
 
-/**
- * Corner 类: 管理光标的每一个独立角点
- * 负责处理该角点的局部坐标到全局坐标的投影、弹簧系统的调度以及对齐度计算
- */
 class Corner {
   constructor(rp) {
-    this.rp = rp; // 角点相对于光标中心的相对位置系数
-    this.cp = { x: 0, y: 0 }; // 角点当前在屏幕上的实际位置
-    this.pd = { x: -1e5, y: -1e5 }; // 角点上一帧锁定的目标位置
-    this.ax = new DampedSpringAnimation(cursorConfig.animationLength); // 左右(X轴)弹簧
-    this.ay = new DampedSpringAnimation(cursorConfig.animationLength); // 上下(Y轴)弹簧
-    this.targetDim = { width: 8, height: 18 }; // 该角点认定的光标大小
+    this.rp = rp;
+    this.rpNorm = cursorNormalize(rp);
+
+    this.cp = { x: 0, y: 0 };
+    this.pd = { x: -1e5, y: -1e5 };
+
+    this.ax = new DampedSpringAnimation(cursorConfig.animationLength);
+    this.ay = new DampedSpringAnimation(cursorConfig.animationLength);
+
+    this.targetDim = { width: 8, height: 18 };
   }
 
-  /**
-   * getDest 方法: 计算该角点理想状态下(静止时)应该到达的目标坐标
-   */
-  getDest(c, dim) {
-    return {
-      x: c.x + this.rp.x * dim.width,
-      y: c.y + this.rp.y * dim.height,
+  calculateDirectionAlignment(dim, center) {
+    const dest = { x: 0, y: 0 };
+    this.getDest(dest, center, dim);
+
+    const dir = {
+      x: dest.x - this.cp.x,
+      y: dest.y - this.cp.y,
     };
+
+    const len = Math.hypot(dir.x, dir.y);
+    if (!len) return 0;
+
+    const nx = dir.x / len;
+    const ny = dir.y / len;
+
+    return nx * this.rpNorm.x + ny * this.rpNorm.y;
   }
 
-  /**
-   * calculateDirectionAlignment 方法: 计算角点相对位移的方向对齐度
-   * 逻辑: 通过点积运算判断该角点是在移动方向的前端还是后端
-   */
-  calculateDirectionAlignment(dim, destCenter) {
-    const cornerDest = this.getDest(destCenter, dim);
-    const travelDir = cursorNormalize({
-      x: cornerDest.x - this.cp.x,
-      y: cornerDest.y - this.cp.y,
-    });
-    const cornerDir = cursorNormalize(this.rp);
-    return travelDir.x * cornerDir.x + travelDir.y * cornerDir.y;
+  getDest(out, c, dim) {
+    out.x = c.x + this.rp.x * dim.width;
+    out.y = c.y + this.rp.y * dim.height;
   }
 
-  /**
-   * jump 方法: 核心调度逻辑
-   * 逻辑: 当光标大范围位移时, 重新分配每个角点的权重, 决定谁该领先, 谁该拖后
-   */
   jump(c, dim, rank) {
-    this.targetDim = { ...dim };
-    const t = this.getDest(c, dim);
+    this.targetDim.width = dim.width;
+    this.targetDim.height = dim.height;
+
+    const dest = { x: 0, y: 0 };
+    this.getDest(dest, c, dim);
+
     const jv = {
-      x: (t.x - this.pd.x) / dim.width,
-      y: (t.y - this.pd.y) / dim.height,
+      x: (dest.x - this.pd.x) / dim.width,
+      y: (dest.y - this.pd.y) / dim.height,
     };
-    // 判断是否为短距离移动 (如正常打字)
+
+    const len = Math.hypot(jv.x, jv.y);
+    const jvNorm = len ? { x: jv.x / len, y: jv.y / len } : { x: 0, y: 0 };
+
     const isShortMove =
       Math.abs(jv.x) <= cursorConfig.shortMoveThreshold &&
       Math.abs(jv.y) <= 0.001;
+
     const baseTime = isShortMove
       ? cursorConfig.shortAnimationLength
       : cursorConfig.animationLength;
+
     const leadingAlignment =
-      cursorNormalize(jv).x * cursorNormalize(this.rp).x +
-      cursorNormalize(jv).y * cursorNormalize(this.rp).y;
+      jvNorm.x * this.rpNorm.x + jvNorm.y * this.rpNorm.y;
 
     let finalFactor;
-    // 领先判定: 对齐度极高的前端角点执行快速响应 (Hard Snap)
     if (
       cursorConfig.useHardSnap &&
       leadingAlignment > cursorConfig.leadingSnapThreshold
@@ -196,53 +190,55 @@ class Corner {
         cursorConfig.rank2TrailFactor,
         cursorConfig.rank3TrailFactor,
       ];
-      finalFactor = factors[rank] || 1.0;
+      finalFactor = factors[rank] || 1;
     }
 
-    let len =
+    const lenAnim =
       leadingAlignment > cursorConfig.leadingSnapThreshold &&
       cursorConfig.useHardSnap
         ? cursorConfig.snapAnimationLength
         : baseTime * cursorClamp(finalFactor, 0, 1);
 
-    this.ax.animationLength = len;
-    this.ay.animationLength = len;
+    this.ax.animationLength = lenAnim;
+    this.ay.animationLength = lenAnim;
 
-    // 若动画时长较大, 则清空旧动能, 避免之前的运动惯性干扰本次跳转
-    if (len > cursorConfig.animationResetThreshold) {
+    if (lenAnim > cursorConfig.animationResetThreshold) {
       this.ax.reset();
       this.ay.reset();
     }
   }
 
-  /**
-   * update 方法: 每一帧执行的物理位置迭代
-   */
   update(dim, c, dt, imm) {
-    const dest = this.getDest(c, dim);
-    // 如果目标点移动了, 将新的差值注入弹簧系统进行缓慢消化
-    if (dest.x !== this.pd.x || dest.y !== this.pd.y) {
-      this.ax.position = dest.x - this.cp.x;
-      this.ay.position = dest.y - this.cp.y;
-      this.pd = { ...dest };
+    const destX = c.x + this.rp.x * dim.width;
+    const destY = c.y + this.rp.y * dim.height;
+
+    if (destX !== this.pd.x || destY !== this.pd.y) {
+      this.ax.position = destX - this.cp.x;
+      this.ay.position = destY - this.cp.y;
+      this.pd.x = destX;
+      this.pd.y = destY;
     }
-    // 如果在滚动状态, 强行同步位置以防止光标在页面滚动时掉队
+
     if (imm) {
-      this.cp = dest;
+      this.cp.x = destX;
+      this.cp.y = destY;
       this.ax.reset();
       this.ay.reset();
       return false;
     }
+
     this.ax.update(dt);
     this.ay.update(dt);
-    // 限制拉伸距离, 防止物理计算异常导致光标飞出屏幕
+
     const maxD =
       Math.max(dim.width, dim.height) * cursorConfig.maxTrailDistanceFactor;
+
     this.ax.position = cursorClamp(this.ax.position, -maxD, maxD);
     this.ay.position = cursorClamp(this.ay.position, -maxD, maxD);
-    // 最终绘制点 = 目标点 - 弹簧尚未消化的剩余距离
-    this.cp.x = dest.x - this.ax.position;
-    this.cp.y = dest.y - this.ay.position;
+
+    this.cp.x = destX - this.ax.position;
+    this.cp.y = destY - this.ay.position;
+
     return Math.abs(this.ax.position) > 0.5 || Math.abs(this.ay.position) > 0.5;
   }
 }
@@ -303,17 +299,19 @@ const createNeovideCursor = ({ canvas }) => {
           };
           corners.forEach((c) => {
             c.targetDim = { ...oldDim };
-            const d = c.getDest({ x: src.x, y: src.y }, oldDim);
-            c.cp = { ...d };
-            c.pd = { ...d };
+            const d = { x: 0, y: 0 };
+            c.getDest(d, { x: src.x, y: src.y }, oldDim);
+            c.cp = { x: d.x, y: d.y };
+            c.pd = { x: d.x, y: d.y };
           });
         } else {
           // 无源坐标时, 直接在目标位置初始化
           corners.forEach((c) => {
             c.targetDim = { ...cursorDimensions };
-            const d = c.getDest(newCenter, cursorDimensions);
-            c.cp = { ...d };
-            c.pd = { ...d };
+            const d = { x: 0, y: 0 };
+            c.getDest(d, newCenter, cursorDimensions);
+            c.cp = { x: d.x, y: d.y };
+            c.pd = { x: d.x, y: d.y };
           });
         }
         initialized = true;

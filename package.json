@@ -379,7 +379,7 @@
           "visionSmashCode.mouse.shadowBlurFactor": {
             "order": 5,
             "type": "number",
-            "default": 1.8,
+            "default": 2,
             "description": "Shadow blur intensity (multiplier)\n  阴影模糊强度 (乘以 startWidth)"
           },
           "visionSmashCode.mouse.pointLife": {
@@ -393,7 +393,7 @@
           "visionSmashCode.mouse.maxPoints": {
             "order": 7,
             "type": "integer",
-            "default": 50,
+            "default": 24,
             "minimum": 10,
             "maximum": 200,
             "description": "Max number of points\n  最大点数量"
@@ -401,7 +401,7 @@
           "visionSmashCode.mouse.startWidth": {
             "order": 8,
             "type": "number",
-            "default": 5,
+            "default": 4,
             "minimum": 1,
             "maximum": 50,
             "description": "Mouse head max width\n  鼠标头部最大宽度"
@@ -409,7 +409,7 @@
           "visionSmashCode.mouse.widthPower": {
             "order": 9,
             "type": "number",
-            "default": 1.4,
+            "default": 0.8,
             "minimum": 0.1,
             "maximum": 5,
             "description": "Width decay exponent\n  宽度衰减指数"
@@ -417,7 +417,7 @@
           "visionSmashCode.mouse.widthDecay": {
             "order": 10,
             "type": "number",
-            "default": 1.0,
+            "default": 0.8,
             "minimum": 0.1,
             "maximum": 5,
             "description": "Width overall scale factor\n  宽度整体缩放系数"
