@@ -52,6 +52,36 @@ const explosionConfig = {
     "#00FA9A",
     "#FF00FF",
   ],
+
+  bannedKeys: [
+    "Control",
+    "Alt",
+    "Shift",
+    "Meta",
+    "Tab",
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    "F9",
+    "F10",
+    "F11",
+    "F12",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+    "PageUp",
+    "PageDown",
+    "Insert",
+    "CapsLock",
+  ],
 };
 /* __AUTO_CONFIG_END__ */
 
@@ -153,17 +183,23 @@ class CursorManager {
     };
   }
 
-  /**
-   * 获取当前所有有效光标的坐标
-   * @returns {Array<{x: number, y: number}>} 坐标数组
-   */
+  refresh() {
+    this.editor = document.querySelector(".monaco-editor.focused");
+    if (this.editor) {
+      this.cursorNodes = this.editor.querySelectorAll(".cursor");
+    } else {
+      this.cursorNodes = [];
+    }
+  }
+
+  // 获取当前所有有效光标的坐标
   getAllCursorPositions() {
     const activeEditor = document.querySelector(this.selectors.editor);
     if (!activeEditor) return [];
 
     const positions = [];
 
-    // 1. 获取所有可见的光标元素 (VS Code 在多光标模式下会有多个 .cursor div)
+    // 获取所有可见的光标元素 (VS Code 在多光标模式下会有多个 .cursor div)
     const cursorNodes = activeEditor.querySelectorAll(this.selectors.cursor);
 
     if (cursorNodes.length > 0) {
@@ -175,15 +211,11 @@ class CursorManager {
       });
     }
 
-    // 2. 兜底方案：如果找不到任何 .cursor 元素（极罕见），尝试使用 inputarea
-    // inputarea 通常跟随主光标
-    if (positions.length === 0) {
-      const inputArea = activeEditor.querySelector(this.selectors.input);
-      if (inputArea) {
-        const rect = inputArea.getBoundingClientRect();
-        if (this.isValidRect(rect)) {
-          positions.push({ x: rect.left, y: rect.top });
-        }
+    const inputArea = activeEditor.querySelector(this.selectors.input);
+    if (inputArea) {
+      const rect = inputArea.getBoundingClientRect();
+      if (this.isValidRect(rect)) {
+        positions.push({ x: rect.left, y: rect.top });
       }
     }
 
@@ -224,7 +256,7 @@ class CursorExplosionEffect {
     resize();
 
     window.addEventListener("keydown", (e) => {
-      if (["Control", "Alt", "Shift", "Meta"].includes(e.key)) return;
+      if (explosionConfig.bannedKeys.includes(e.key)) return;
       this.spawn(e.key);
     });
     this.loop();
@@ -278,6 +310,9 @@ class CursorExplosionEffect {
 
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       const renderer = EFFECT_RENDERERS[p.mode];
@@ -285,7 +320,8 @@ class CursorExplosionEffect {
       renderer.update(p);
 
       if (p.life <= 0) {
-        this.particles.splice(i, 1);
+        this.particles[i] = this.particles[this.particles.length - 1];
+        this.particles.pop();
         continue;
       }
 
@@ -298,8 +334,6 @@ class CursorExplosionEffect {
       this.ctx.rotate(p.rotation);
 
       // 3. 设置样式
-      this.ctx.textAlign = "center";
-      this.ctx.textBaseline = "middle";
       this.ctx.fillStyle = p.color;
       this.ctx.shadowColor = p.color;
       this.ctx.shadowBlur = 8;
