@@ -1,14 +1,14 @@
 {
   "name": "vision-smash-code",
-  "displayName": "Vision Smash Code",
+  "displayName": "Vision Smash Code（Custom UI Style）",
   "publisher": "gentlybeing",
-  "description": "Add cursor trail effects, window animations, and gradient theme effects to VS Code, making your coding experience more vivid and interesting!",
+  "description": "Add cursor trail effects, window animations, and gradient theme effects to VS Code, making your coding experience more vivid and interesting !Changed to use Custom UI Style plugin as dependency to fix the issue of invalidation in new VSCode versions. \n 为 VS Code 添加光标拖尾效果、窗口动画和渐变主题效果，让您的编码体验更加生动有趣！已改为使用 Custom UI Style 插件作为依赖，以修复在新版 VSCode 中失效的问题",
   "repository": {
     "type": "git",
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "1.1.4",
+  "version": "1.1.6-mod",
   "keywords": [
     "cursor",
     "animation",
@@ -31,7 +31,7 @@
     "Themes"
   ],
   "extensionDependencies": [
-    "be5invis.vscode-custom-css"
+    "subframe7536.custom-ui-style"
   ],
   "license": "GPL-3.0-only",
   "exports": {
@@ -659,9 +659,9 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.80.1",
+    "@types/vscode": "^1.80.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "22.x",
+    "@types/node": "24.x",
     "eslint": "^9.39.2",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2"

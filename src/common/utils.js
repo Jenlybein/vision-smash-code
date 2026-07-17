@@ -2,8 +2,8 @@ import * as fs from "fs";
 import * as vscode from "vscode";
 import * as path from "path";
 
-const configKey = "vscode_custom_css";
-const configProperty = "imports";
+const configKey = "custom-ui-style"
+const configProperty = "external.imports";
 
 // 判断文件是否存在
 async function fileExists(p) {
@@ -15,15 +15,15 @@ async function fileExists(p) {
   }
 }
 
-// 导入 Custom CSS & JS Loader 配置的注入列表
+// 导入 Custom UI Style
 export function GetImports() {
   return vscode.workspace.getConfiguration(configKey).get(configProperty) || [];
 }
 
-// 加载配置到 Custom CSS & JS Loader 中
+// 加载配置到 Custom UI Style
 export async function UpdateImports(updatedImports) {
   // 更新配置
-  vscode.workspace
+  await vscode.workspace
     .getConfiguration(configKey)
     .update(configProperty, updatedImports, vscode.ConfigurationTarget.Global);
 }
@@ -39,7 +39,7 @@ export async function AddPaths(imports, addPaths) {
       return;
     }
 
-    // 将路径转换为适合 Custom CSS & JS Loader 的格式
+    // 将路径转换为适合 Custom UI Style
     newImports.push(vscode.Uri.file(filePath).toString());
   }
 

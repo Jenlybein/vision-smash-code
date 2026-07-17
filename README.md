@@ -13,14 +13,14 @@ A visual enhancement extension for VS Code that injects life into your coding ex
 
 ### 📋 Prerequisites
 
-> ⚠️ **Important:** You must install [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) before using this extension, or no visual effects will work!
+> ⚠️ **Important:** You must install **[Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style)** before using this extension, or no visual effects will work!
 
-VS Code extensions cannot directly modify editor styles, so Custom CSS and JS Loader is required to inject custom CSS/JS.
+VS Code extensions cannot directly modify editor styles, so Custom UI Style is required to inject custom CSS/JS.
 
 ### 📝 Enable Steps
 
 1. Open VS Code Extension Marketplace
-2. **Install dependency:** `Custom CSS and JS Loader` (by be5invis)
+2. **Install dependency:** `Custom UI Style` (by subframe7536)
 3. **Install this extension:** Search and install `Vision Smash Code` (by gentlybeing)
 4. **Open Settings**
    - Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (macOS) to open the Command Palette
@@ -28,7 +28,7 @@ VS Code extensions cannot directly modify editor styles, so Custom CSS and JS Lo
 5. **Enable features:** Toggle the features you want in the settings page
 6. **Apply changes**
    - After changing config, the extension will prompt you to reload VS Code
-   - Click **Confirm** in the `Custom CSS and JS Loader` prompt
+   - Click **Confirm** in the `Custom UI Style` prompt
    - Wait for VS Code to restart and apply all effects
 
 ![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
@@ -45,11 +45,11 @@ VS Code extensions cannot directly modify editor styles, so Custom CSS and JS Lo
 
 ### ❓ Why does VS Code show "corrupted"?
 
-This is normal! Custom CSS and JS Loader modifies VS Code's internal files to inject styles. **It does not affect any VS Code features or your experience.**
+This is normal! Custom UI Style modifies VS Code's internal files to inject styles. **It does not affect any VS Code features or your experience.**
 
 To dismiss the warning:
 - Click **"Don't show again"** in the popup
-- Or see [Custom CSS and JS Loader docs](https://github.com/be5invis/vscode-custom-css)
+- Or see [Custom UI Style docs](https://github.com/subframe7536/vscode-custom-ui-style)
 
 ---
 
@@ -147,7 +147,7 @@ Thanks to the following projects for inspiration and reference:
 | **VSCode Animations** | Window animation inspiration | [GitHub](https://github.com/BrandonKirbyson/VSCode-Animations) |
 | **Neovide Cursor** | Cursor effect inspiration | [GitHub](https://github.com/30d98f9b2/Neovide-Cursor) |
 | **Gradient Theme** | Gradient beautification | [GitHub](https://github.com/shaobeichen/gradient-theme) |
-| **Custom CSS and JS Loader** | Style injection solution | [GitHub](https://github.com/be5invis/vscode-custom-css) |
+| **Custom UI Style** | Style injection solution | [GitHub](https://github.com/subframe7536/vscode-custom-ui-style) |
 
 ## 📄 License
 
