@@ -1,4 +1,5 @@
-﻿# Vision Smash Code 🎨
+﻿
+# Vision Smash Code 🎨
 
 [![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.80.1-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
 
@@ -12,14 +13,12 @@
 
 ### 📋 前置要求
 
-> ⚠️ 重要：使用本扩展前，必须安装 [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) 插件，否则无法加载任何视觉效果！
-
-这是因为 VS Code 扩展本身无法直接修改编辑器样式，需要通过 Custom CSS and JS Loader 来注入自定义 CSS 和 JavaScript。
+> ⚠️ 重要：使用本扩展前，必须安装 **[Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style)**。这是因为 VS Code 扩展本身无法直接修改编辑器样式，需要通过 Custom UI Style 来注入自定义 CSS 和 JavaScript。
 
 ### 📝 启用步骤
 
 1. 打开 VS Code 扩展商店
-2. **安装依赖插件**： `Custom CSS and JS Loader`（发布者：be5invis）
+2. **安装依赖插件**：`Custom UI Style`（发布者：subframe7536）
 3. **安装本扩展**：搜索安装 `Vision Smash Code`（发布者：gentlybeing）
 4. **打开设置**
    - 按 `Ctrl+Shift+P` (Windows/Linux) 或 `Cmd+Shift+P` (macOS) 打开命令面板
@@ -27,7 +26,7 @@
 5. **启用功能**：在打开的设置页面中启用你想要的功能
 6. **应用更改**
    - 修改配置后，扩展会自动提示你重载 VS Code
-   - 点击 `Custom CSS and JS Loader` 提示框中的 **确认** 按钮
+   - 点击 `Custom UI Style` 提示框中的 **确认** 按钮
    - 等待 VS Code 重启并应用所有效果
 
 ![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
@@ -44,11 +43,11 @@
 
 ### ❓ VS Code 提示"已损坏"？
 
-这是正常现象！因为 Custom CSS and JS Loader 需要修改 VS Code 的内部文件来注入样式。**这不会影响 VS Code 的任何功能和使用体验**。
+这是正常现象！因为 Custom UI Style 需要修改 VS Code 的内部文件来注入样式。**这不会影响 VS Code 的任何功能和使用体验**。
 
 如果想关闭这个警告提示：
 - 点击弹窗中的 **"不再提示"** 按钮
-- 或查阅 [Custom CSS and JS Loader 文档](https://github.com/be5invis/vscode-custom-css)
+- 或查阅 [Custom UI Style 文档](https://github.com/subframe7536/vscode-custom-ui-style)
 
 ## ✨ 功能特性
 
@@ -144,7 +143,7 @@
 | **VSCode Animations** | 窗口动效灵感 | [GitHub](https://github.com/BrandonKirbyson/VSCode-Animations) |
 | **Neovide Cursor** | 光标特效灵感 | [GitHub](https://github.com/30d98f9b2/Neovide-Cursor) |
 | **Gradient Theme** | 渐变美化灵感 | [GitHub](https://github.com/shaobeichen/gradient-theme) |
-| **Custom CSS and JS Loader** | 样式注入解决方案 | [GitHub](https://github.com/be5invis/vscode-custom-css) |
+| **Custom UI Style** | 样式注入解决方案 | [GitHub](https://github.com/subframe7536/vscode-custom-ui-style) |
 
 ## 📄 许可证
 

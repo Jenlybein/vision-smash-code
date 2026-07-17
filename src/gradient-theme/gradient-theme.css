@@ -55,6 +55,10 @@ div.monaco-inputbox {
 div.focused {
   --vscode-quickInputList-focusBackground: #04395e80 !important;
 }
+/* 字体发光 */
+:not(.cursor)[class^="mtk"] {
+  text-shadow: 0 0 5px currentColor !important;
+}
 /* 字体微弱渐变效果 */
 :not(.cursor)[class^="mtk"] {
   /* text-shadow: 0 0 1px currentColor !important; */
