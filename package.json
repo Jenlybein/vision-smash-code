@@ -30,9 +30,6 @@
     "Other",
     "Themes"
   ],
-  "extensionDependencies": [
-    "be5invis.vscode-custom-css"
-  ],
   "license": "GPL-3.0-only",
   "exports": {
     ".": "./extension.js"
@@ -56,6 +53,19 @@
         "title": "Base Settings - 基本配置",
         "order": 0,
         "properties": {
+          "visionSmashCode.loader": {
+            "type": "string",
+            "enum": [
+              "be5invis",
+              "custom-ui-style"
+            ],
+            "enumDescriptions": [
+              "Custom CSS and JS Loader — default. Existing users keep the current behavior.\n  Custom CSS and JS Loader（默认）：既有用户升级后行为完全不变。",
+              "Custom UI Style — experimental. Local JS is loaded as an ES module and may not work; switch back to be5invis at any time.\n  Custom UI Style（实验性）：本地 JS 会被当作 ES module 加载，可能不生效；可随时切回 be5invis。"
+            ],
+            "default": "be5invis",
+            "markdownDescription": "Which extension injects this extension's CSS/JS.\n\n- `be5invis` = Custom CSS and JS Loader — **default**. Existing users keep the current behavior.\n- `custom-ui-style` = Custom UI Style — **experimental**: local JS is loaded as an ES module and may not work; switch back to `be5invis` at any time.\n\nChanging this removes this extension's entries from the previous backend and adds them to the new one. Entries you added yourself are never touched.\n\n由哪个扩展注入本扩展的 CSS/JS。\n\n- `be5invis` = Custom CSS and JS Loader —— **默认**，既有用户升级后行为完全不变。\n- `custom-ui-style` = Custom UI Style —— **实验性**：本地 JS 会被当作 ES module 加载，可能不生效；可随时切回 `be5invis`。\n\n切换时会先把本扩展的条目从旧后端的注入列表中移除，再写入新后端；你自己添加的其它注入项不会被改动。"
+          },
           "visionSmashCode.base.cursor": {
             "type": "boolean",
             "default": false,

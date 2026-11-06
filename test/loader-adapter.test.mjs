@@ -190,14 +190,15 @@ test("替换适配层实现即可切换配置键与重载命令，业务代码�
   );
 
   // 默认后端（be5invis）：键名、命令与重构前逐字节一致。
-  // 流程里读、写各取一次配置，因此按去重后的配置节断言"只碰这一个节"。
+  // 流程里读、写各取一次配置（写入前会再读一次，以保留用户自己条目的形态，见 #22），
+  // 因此按去重后的配置节 / 属性名断言"只碰这一个节、这一个属性"。
   assert.deepEqual(distinct(be5invis.log.sections), ["vscode_custom_css"]);
-  assert.deepEqual(be5invis.log.gets, ["imports"]);
+  assert.deepEqual(distinct(be5invis.log.gets), ["imports"]);
   assert.deepEqual(be5invis.log.commands, [["extension.updateCustomCSS"]]);
 
   // 换一份声明后，同一段业务代码读写的键、调用的命令都随之改变。
   assert.deepEqual(distinct(hypothetical.log.sections), ["hypothetical_ui_style"]);
-  assert.deepEqual(hypothetical.log.gets, ["files"]);
+  assert.deepEqual(distinct(hypothetical.log.gets), ["files"]);
   assert.deepEqual(hypothetical.log.commands, [["hypotheticalUiStyle.reload"]]);
 
   // 业务结果完全相同：变的只有"写到哪、调什么"。
@@ -214,8 +215,15 @@ test("替换适配层实现即可切换配置键与重载命令，业务代码�
 //
 // 只扫"会被扩展宿主加载的模块"（extension.js 与 src 下的 .js）：
 // 测试自己需要引用这些字面量来锁住默认值，docs 里则是诊断记录，都不算模块。
+// #22 起把第二个后端的标识也纳进来：业务代码同样不得出现它的名字或配置键。
 
-const LOADER_LITERALS = ["vscode_custom_css", "extension.updateCustomCSS"];
+const LOADER_LITERALS = [
+  "vscode_custom_css",
+  "extension.updateCustomCSS",
+  "custom-ui-style",
+  "subframe7536.custom-ui-style",
+  "external.imports",
+];
 
 function listHostModules(dir = path.join(repoRoot, "src")) {
   const files = [];
@@ -259,7 +267,9 @@ test("加载器字面量（配置键、命令名）只出现在适配层", () =>
 test("扩展入口通过适配层访问底层加载器，不自己拼键名或命令", () => {
   const source = fs.readFileSync(entryFile, "utf8");
 
-  assert.match(source, /createLoaderAdapter/);
+  // #22 起入口不再自己造适配器，而是让适配层按设置值选（`selectLoader` 内部仍然
+  // 用 `createLoaderAdapter`）；两条路径都算"经过适配层"。
+  assert.match(source, /selectLoader|createLoaderAdapter/);
   assert.doesNotMatch(source, /getConfiguration\(\s*["']vscode_custom_css/);
   assert.doesNotMatch(source, /executeCommand\(\s*["']extension\.updateCustomCSS/);
 });
