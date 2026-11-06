@@ -124,6 +124,7 @@ import { basenameKey, removeByBasename } from "./import-paths.js";
  *   - 标记存在 → 整块替换；不存在 → 整块插入到文件头，后跟两个换行再接原文。
  *   - 只替换**第一处**标记块：文件里出现两处时第二处原样保留（与迁移前的非全局正则一致）。
  *   - 目标文件缺失（`readText` 返回 `null`）→ `errors` 一条、不写盘、不抛异常。
+ *   - 缺少 `readText` 能力 → `errors` 一条、不写盘、不抛异常（与 `css-concat` 同一守卫）。
  *   - 描述符缺字段 → `errors` 一条，且不读取目标文件。
  * - `kind` 省略（`undefined` / `null`）：不产生 `writes`、不报错。这是执行层的显式用法：
  *   `flushChanges` 只做导入规划，内容写入仍归各效果自己的 `StyleConfigUpdate`。
@@ -533,6 +534,20 @@ function renderMarkerBlock(effect, readText) {
         {
           path: effect.targetPath,
           message: `marker-block 描述符不完整（需要 markers.start、markers.end、variableName 或 body）：效果 ${effect.key}`,
+        },
+      ],
+    };
+  }
+
+  // 读取能力缺失：显式报错而不是 `TypeError`——Interface 第 2、4 条。
+  // 与 `renderCssConcat` 的守卫同位：描述符先校验（错误更具体），再校验能力。
+  if (typeof readText !== "function") {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: effect.targetPath,
+          message: `缺少读取能力（readText），无法渲染效果 ${effect.key} 的标记块`,
         },
       ],
     };

@@ -172,6 +172,25 @@ test("描述符缺少 markers 或 variableName 时报告 errors、不写盘、�
   assert.deepEqual(calls, []);
 });
 
+test("缺少 readText 能力时报告 errors、不抛异常、不写盘", () => {
+  // 与 css-concat 一致的能力守卫：描述符合法但没有读取能力时，不能靠 TypeError 冒泡
+  // （接缝自述「不抛异常，失败只走 errors」）。这条测试锁住 marker-block 那一侧。
+  let plan;
+  assert.doesNotThrow(() => {
+    plan = planRefresh({
+      effects: [cursorEffect()],
+      changeStates: {},
+      currentImports: [],
+      // 故意不提供 readText。
+    });
+  });
+
+  assert.deepEqual(plan.writes, []);
+  assert.equal(plan.errors.length, 1);
+  assert.equal(plan.errors[0].path, TARGET);
+  assert.match(plan.errors[0].message, /readText/);
+});
+
 function countOccurrences(haystack, needle) {
   return haystack.split(needle).length - 1;
 }
