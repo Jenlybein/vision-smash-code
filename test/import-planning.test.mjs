@@ -186,7 +186,7 @@ test("回归：目标文件缺失时报告错误，且导入列表仍是合法�
   assert.match(plan.errors[0].message, /找不到配置文件/);
 
   // 关键回归点：绝不出现 undefined / 非字符串元素（重构前 AddPaths 会 return undefined，
-  // 调用方把 undefined 直接写进 vscode_custom_css.imports）。
+  // 调用方把 undefined 直接写进底层加载器的注入列表）。
   assert.deepEqual(plan.imports, [GRADIENT_URI]);
   assert.ok(plan.imports.every((p) => typeof p === "string" && p.length > 0));
   assert.equal(plan.imports.includes(undefined), false);

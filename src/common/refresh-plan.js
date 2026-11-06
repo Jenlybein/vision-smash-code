@@ -38,7 +38,8 @@ import { basenameKey, removeByBasename } from "./import-paths.js";
  *
  * ### 输出字段
  *
- * 7. `imports: string[]`：下一份 `vscode_custom_css.imports`。语义与重构前
+ * 7. `imports: string[]`：下一份注入列表（由底层加载器适配层负责写回配置，
+ *    见 `src/common/loader-adapter.js`）。语义与重构前
  *    `flushChanges` + `RemovePaths` / `AddPaths` 的组合同值：
  *    - 状态 `switch`：启用 → 加入；未启用 → 按 basename（**忽略大小写**）移除；
  *    - 状态 `reload`：**仅当启用时**先移除再加入（重新落到列表末尾，这是触发重载的关键）；
