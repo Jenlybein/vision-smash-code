@@ -2,12 +2,18 @@ import * as fs from "fs";
 import * as vscode from "vscode";
 import * as path from "path";
 
+// 目录名与文件名来自纯常量模块，其大小写由 test/asset-paths.test.mjs 对齐仓库真实文件
+import {
+  ANIMATIONS_SOURCE_DIR,
+  ANIMATIONS_TARGET_FILE,
+} from "../common/asset-paths.js";
+
 // 窗口动效加载文件路径
 let targetFilePath = "";
 let cssRoot = "";
 export function init(context) {
-  cssRoot = path.join(context.extensionPath, "src", "vscode-animations");
-  targetFilePath = path.join(cssRoot, "vscode-animations.css");
+  cssRoot = path.join(context.extensionPath, "src", ANIMATIONS_SOURCE_DIR);
+  targetFilePath = path.join(cssRoot, ANIMATIONS_TARGET_FILE);
 
   return targetFilePath;
 }
