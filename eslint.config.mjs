@@ -17,6 +17,8 @@ export default [
   {
     ignores: [
       "node_modules/**",
+      // 构建产物：由 esbuild 生成，不是手写源码，lint 它只会报 bundler 的写法。
+      "dist/**",
       "images/**",
       "docs/**",
       ...injectedRendererAssets,
