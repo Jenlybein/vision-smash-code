@@ -38,7 +38,7 @@
     ".": "./extension.js"
   },
   "engines": {
-    "vscode": "^1.80.1"
+    "vscode": "^1.100.0"
   },
   "activationEvents": [
     "onStartupFinished"
