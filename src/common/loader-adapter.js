@@ -61,6 +61,31 @@
  */
 
 /**
+ * 条目形态的**共享默认实现**（评审 F11）。
+ *
+ * 两个真实后端的本地文件条目都是 `file://` 字符串，`toEntry` / `fromId` 逐字相同；
+ * `toId` 的"字符串分支"与"省略 `toId` 时的默认实现"也逐字相同。三处各抄一份的话，
+ * 改一处就会漂移，因此只在声明里引用这里的函数。
+ */
+
+/** 本地路径 → 条目字符串视图（稳定 id）。`vscode.Uri.file(path).toString()`。 */
+const filePathToEntry = ({ filePath, vscode }) =>
+  vscode.Uri.file(filePath).toString();
+
+/** 读到的条目 → 稳定字符串 id：只认字符串，别的一律归一化不了。 */
+const stringToId = (entry) => (typeof entry === "string" ? entry : null);
+
+/** id → 条目：条目就是那个字符串本身，因此是恒等。 */
+const idToEntry = (id) => id;
+
+/** 在字符串基础上，额外认 `{ type, url }` 对象条目的 `url`。 */
+const stringOrObjectUrlToId = (entry) =>
+  stringToId(entry) ??
+  (entry && typeof entry === "object" && typeof entry.url === "string"
+    ? entry.url
+    : null);
+
+/**
  * 默认后端：`be5invis.vscode-custom-css`（Custom CSS & JS Loader）。
  *
  * 这份声明就是"我们的默认加载器是它"这件事的全部。字段一律与重构前逐字节一致，
@@ -81,11 +106,11 @@ export const CUSTOM_CSS_LOADER = {
   reloadCommand: "extension.updateCustomCSS",
   // 该加载器把注入列表当作 URI 字符串数组，因此路径转条目就是
   // `vscode.Uri.file(path).toString()`——与重构前 extension.js 的 toImportUri 逐字节一致。
-  toEntry: ({ filePath, vscode }) => vscode.Uri.file(filePath).toString(),
+  toEntry: filePathToEntry,
   // 读到的条目 → 稳定字符串 id。该后端只认字符串，别的一律归一化不了。
-  toId: (entry) => (typeof entry === "string" ? entry : null),
+  toId: stringToId,
   // 由 id 造出条目。该后端的条目就是那个字符串本身，因此是恒等。
-  fromId: (id) => id,
+  fromId: idToEntry,
 };
 
 /**
@@ -108,16 +133,11 @@ export const CUSTOM_UI_STYLE_LOADER = {
   configSection: "custom-ui-style",
   importsProperty: "external.imports",
   reloadCommand: "custom-ui-style.reload",
-  toEntry: ({ filePath, vscode }) => vscode.Uri.file(filePath).toString(),
-  toId: (entry) => {
-    if (typeof entry === "string") return entry;
-    if (entry && typeof entry === "object" && typeof entry.url === "string") {
-      return entry.url;
-    }
-    return null;
-  },
+  toEntry: filePathToEntry,
+  // 字符串条目与默认实现相同；额外认对象条目的 `url`（用户自己的远端条目）。
+  toId: stringOrObjectUrlToId,
   // 本地文件在该后端上只有字符串一种可用形态（`.js` 会被当作 ES module 执行）。
-  fromId: (id) => id,
+  fromId: idToEntry,
 };
 
 /**
@@ -200,7 +220,8 @@ function isExtensionAvailable(vscode, extensionId) {
  * 按一份加载器声明造出适配器。
  *
  * 声明里 `toId` / `fromId` 省略时按"条目就是字符串"处理：这样只关心配置键与命令的
- * 后端（例如测试里的假想后端）也能用一份最短的声明接入。
+ * 后端（例如测试里的假想后端）也能用一份最短的声明接入。默认实现与两份真实后端声明
+ * 引用的是同一批函数（`stringToId` / `idToEntry`），不存在第二份实现可供漂移。
  *
  * @param {{
  *   vscode: { workspace: { getConfiguration: Function }, commands: { executeCommand: Function }, ConfigurationTarget: object, Uri: { file: Function } },
@@ -208,8 +229,9 @@ function isExtensionAvailable(vscode, extensionId) {
  * }} deps
  */
 export function createLoaderAdapter({ vscode, loader = DEFAULT_LOADER }) {
-  const toId = loader.toId ?? ((entry) => (typeof entry === "string" ? entry : null));
-  const fromId = loader.fromId ?? ((id) => id);
+  // 省略时用共享默认实现（与两份声明引用的是同一批函数，不会漂移）。
+  const toId = loader.toId ?? stringToId;
+  const fromId = loader.fromId ?? idToEntry;
 
   // 读配置里**原始**的条目数组（可能是字符串，也可能是对象）。
   // 非数组（用户手写坏了）按空列表处理：planRefresh 的契约只接受字符串数组。
