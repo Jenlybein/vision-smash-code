@@ -77,7 +77,7 @@ README 里人工验证步骤要盯的点。**本仓库无法在真实 VS Code �
 
 - 适配层对内只用**字符串 id**：`readImports()` 把读到的条目归一化成 id，`toEntry(path)` 产出 id。
   因此 `planRefresh` 的 `toImportUri` 契约（必须返回字符串）不需要改动，`import-paths.js` 的
-  `basenameKey` / `removeByBasename` 也继续只认字符串——归一化点**落在适配层，不进计划**。
+  `src/common/import-paths.js` 的条目判定（`normalizePathKey` / `removeOwnedEntries`）也继续只认字符串——归一化点**落在适配层，不进计划**。
 - 适配层对外负责两件事：
   - **写**：`writeImports(ids)` 把整份 id 列表还原成条目。仍然存在的 id 用**原来那条条目**
     （`{type,url}` 不会退化成裸字符串——那会把用户的远端条目从 ESM 换成别的语义），

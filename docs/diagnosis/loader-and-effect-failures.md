@@ -339,5 +339,5 @@ PR #281（提交 `d35c9ac6`，2026-05-19，标题 `fix: inject CSS into <head> f
 | 各 `getCursorConfig` / `getWordConfig` / `getMouseConfig` 与配置作用域、目标路径解析 | `src/common/effect-descriptors.js` 的 `EFFECTS` 数据表 |
 | `gradient-inject.js` 的 CSS 片段循环 | `effect-descriptors.js` 的 `GRADIENT_CSS_FILES` + `refresh-plan.js` 的 `renderCssConcat` |
 | `animation-inject.js` 的片段顺序与 `updateDuration` | `src/common/animation-segments.js` 的 `buildAnimationSegments` + `refresh-plan.js` 的 `replaceDurationPlaceholder` |
-| `src/common/utils.js` 的 `AddPaths` / `RemovePaths`（`undefined` 污染路径） | `refresh-plan.js` 的 `planImports` + `src/common/import-paths.js` 的 `removeByBasename` |
+| `src/common/utils.js` 的 `AddPaths` / `RemovePaths`（`undefined` 污染路径） | `refresh-plan.js` 的 `planImports` + `src/common/import-paths.js` 的 `removeOwnedEntries` |
 | `extension.js` 的 `flushChanges`（#12 之前的形态） | 仍是 `extension.js` 的 `flushChanges`，但状态机与导入规划已移入 `planRefresh` |

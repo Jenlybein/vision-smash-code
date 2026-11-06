@@ -132,7 +132,7 @@ planRefresh({ effects, changeStates, currentImports, readText, fileExists, toImp
 
 ### 偏离本文建议之处
 
-1. **`RemovePaths` 被删除，而非「作为内部接缝保留」。** 它的唯一调用点已改由 `planRefresh` → `removeByBasename` 承担；删除后它已无任何调用者，留着就变成本文自己批评过的「接口上的虚假承诺」（与 `GetPath()` 同类）。基元函数 `removeByBasename` 保留在 `src/common/import-paths.js` 中作为实现细节。
+1. **`RemovePaths` 被删除，而非「作为内部接缝保留」。** 它的唯一调用点已改由 `planRefresh` → `removeOwnedEntries` 承担（该函数原名 `removeByBasename`，收尾评审 F8 收紧判据后改名）；删除后它已无任何调用者，留着就变成本文自己批评过的「接口上的虚假承诺」（与 `GetPath()` 同类）。基元函数保留在 `src/common/import-paths.js` 中作为实现细节。
 2. **`updateDuration` 未单独保留为内部接缝**，其能力并入窗口动效的渲染实现（#14）——即
    `css-concat` 的 `duration: true` 片段上做占位替换，判定规则（`Durations[key]` 优先、
    回退 `Default-Duration`、越界按未配置处理、替换成 `<值>ms`）逐条等价。
