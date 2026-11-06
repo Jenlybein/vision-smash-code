@@ -220,14 +220,16 @@ test("空输入也返回结构完整的结果，绝不返回 undefined", () => {
   assert.equal(typeof plan.nextChangeStates, "object");
 });
 
-test("尚未实现的 marker-block 渲染方式报告错误且不写盘", () => {
+test("尚未实现的渲染方式报告错误且不写盘", () => {
   const targetPath = "C:\\ext\\src\\neovide-cursor\\neovide-cursor.js";
 
   const plan = planRefresh({
     effects: [
       {
         key: "cursor",
-        kind: "marker-block",
+        // #13 起 marker-block 已实现，这里改用一种不存在的渲染方式守住同一条契约：
+        // 未知 kind → 显式报错、不写盘、不读任何文件。
+        kind: "unknown-kind",
         targetPath,
         markers: { start: "__AUTO_CONFIG_START__", end: "__AUTO_CONFIG_END__" },
       },
@@ -242,7 +244,7 @@ test("尚未实现的 marker-block 渲染方式报告错误且不写盘", () => 
   assert.deepEqual(plan.writes, []);
   assert.equal(plan.errors.length, 1);
   assert.equal(plan.errors[0].path, targetPath);
-  assert.match(plan.errors[0].message, /marker-block/);
+  assert.match(plan.errors[0].message, /unknown-kind/);
 });
 
 test("相同输入产生相同输出，且不修改入参", () => {
