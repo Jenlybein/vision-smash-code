@@ -5,6 +5,7 @@
 - **关联**：Issue #18（本诊断）、Issue #1、Issue #2（用户报障）、Issue #4（旁证）、Issue #5（父规格）、PR #3（提议更换底层加载器，本诊断**不评论、不修改**）
 - **范围**：只做静态分析与上游取证。**未修改任何产品代码、测试或 `package.json`。**
 - **诚实声明**：本次调查**没有**可用的真实 VS Code 实例去复现，也**没有**安装扩展实测。凡未实际执行的验证一律标为「未确证」，文末给出可执行的人工验证步骤。
+- **行号时点**：文中源码行号以**合并 `refactor/injection-seam`（含 #13「marker-block 渲染」迁移）之后**的代码为准。上游（VS Code / 加载器）的行号以 2026-11-07 抓取到的主干源码为准，会随上游变动；引用时请以内容为准，不要只信行号。
 
 ---
 
@@ -48,7 +49,7 @@ else throw new Error(`Unsupported extension type: ${ext}`);
 | 维度 | 两个 CSS 类效果（渐变 / 窗口动效） | 三个 JS 类效果（光标 / 鼠标 / 文字） |
 | --- | --- | --- |
 | 目标文件 | `src/gradient-theme/gradient-theme.css`、`src/vscode-animations/Vscode-Animations.css` | `src/neovide-cursor/neovide-cursor.js`、`src/mouse-tail/mouse-tail.js`、`src/word-exploder/word-exploder.js` |
-| 内容生成 | 静态 CSS 片段拼接（`gradient-inject.js:9-18`、`animation-inject.js:30-66`） | 把**自身资产文件**读进内存、替换/插入配置块后**覆写原文件**（`cursor-inject.js:65-94`、`mouse-inject.js:54-113`、`word-inject.js:82-163`） |
+| 内容生成 | 静态 CSS 片段拼接（`gradient-inject.js:9-18`、`animation-inject.js:30-66`） | 把**自身资产文件**读进内存、替换/插入配置块后**覆写原文件**（`mouse-inject.js:54-113`、`word-inject.js:82-163`；光标已由 #13 迁到 `planRefresh` 的 `marker-block` 渲染：`cursor-inject.js:77-113` + `refresh-plan.js:339-401`） |
 | 写入位置 | 仓库内 CSS 资产 → 写入同名目标文件 | 仓库内 JS 资产 → 原地覆写（即"改自己的安装文件"） |
 | 加载器生成的标签 | `<style>…</style>` | `<script>…</script>`（经典脚本，非 module、非 IIFE） |
 | 运行期依赖 | 无（样式表不需要 DOM） | **有**：脚本顶层立刻 `new`，构造函数直接 `document.body.appendChild(canvas)` |
@@ -107,14 +108,15 @@ PR #281（提交 `d35c9ac6`，2026-05-19，标题 `fix: inject CSS into <head> f
 不构成问题的一面：
 
 - 内联到 `<script>` 里的顶层 `const` 是**经典脚本的全局词法声明**（不进 `window`，但同一脚本内按词法作用域可见）——三个文件都在同一脚本内引用自己的 `cursorConfig` / `mouseConfig` / `explosionConfig`，不跨脚本，因此合法。
-- `JSON.stringify` 生成的块（`cursor-inject.js:73-74`）与字符串拼接生成的块（`mouse-inject.js:64-93`、`word-inject.js:92-141`）都产出合法对象字面量；正则替换只替换第一个标记块，重复调用幂等。
+- `JSON.stringify` 生成的块（光标：`refresh-plan.js:380-381`）与字符串拼接生成的块（`mouse-inject.js:64-93`、`word-inject.js:92-141`）都产出合法对象字面量；正则替换只替换第一个标记块，重复调用幂等。
 - 该机制在本仓库长期存在，**不随 VS Code 版本变化**，因此无法解释「新版才失效」。
 
 三条真实风险路径（都只在特定输入下触发，故不列为主因）：
 
 1. **替换字符串里的 `$` 语义**：`originalCode.replace(markerRegex, configBlock)` 把配置块当作**替换模式**，其中 `$&`、`` $` ``、`$'`、`$1`、`$$` 会被解释。默认配置里没有 `$`，但用户把颜色/字体设成含 `$` 的字符串时，写回内容会被破坏（可能重复插入文件尾部 → 语法错误）。
-2. **未转义的字符串插值**：`mouse-inject.js:67-70`、`word-inject.js:96-98,107,137` 把设置值直接塞进 `"…"` 里。用户的 `fontFamily` / `fontWeight` / `mode` / `colors[]` 只要含 `"` 或 `\`，生成的 JS 就不合法 → **整个效果脚本 SyntaxError**。
-3. **重复标记块 → 重复声明**：若文件里出现两个 `__AUTO_CONFIG_START__` 块（历史残留、手工编辑），`replace`（非全局）只换第一个，剩下的产生 `const cursorConfig` 二次声明 → `SyntaxError: Identifier 'cursorConfig' has already been declared`。同理，若同一份 JS 在 `vscode_custom_css.imports` 里出现两次，第二个内联 `<script>` 会被这条规则打死（本仓库 `src/common/import-paths.js` 的 basename 去重可以避免自己写重复，但不阻止用户手工添加）。
+   **现状**：光标这条路径已由 #13 改成函数式替换（`refresh-plan.js:395-398`，`replace(markerRegex, () => block)`），该风险对光标已消除；`mouse-inject.js:105`、`word-inject.js:155` 仍是字符串替换，风险仍在。
+2. **未转义的字符串插值**：`mouse-inject.js:67-70`、`word-inject.js:96-98,107,137` 把设置值直接塞进 `"…"` 里。用户的 `fontFamily` / `fontWeight` / `mode` / `colors[]` 只要含 `"` 或 `\`，生成的 JS 就不合法 → **整个效果脚本 SyntaxError**。光标因为走 `JSON.stringify` 不受影响。
+3. **重复标记块 → 重复声明**：若文件里出现两个 `__AUTO_CONFIG_START__` 块（历史残留、手工编辑），`replace`（非全局）只换第一个，剩下的产生 `const cursorConfig` 二次声明 → `SyntaxError: Identifier 'cursorConfig' has already been declared`。这是**被显式保留**的行为（`refresh-plan.js:383-389` 的注释写明「第二处原样保留，与迁移前一致」），迁移并未消除它。同理，若同一份 JS 在 `vscode_custom_css.imports` 里出现两次，第二个内联 `<script>` 会被这条规则打死（本仓库 `src/common/import-paths.js` 的 basename 去重可以避免自己写重复，但不阻止用户手工添加）。
 
 ### D. CSP / 脚本加载策略（历史已确证，当前未确证）
 
@@ -163,11 +165,11 @@ PR #281（提交 `d35c9ac6`，2026-05-19，标题 `fix: inject CSS into <head> f
 
 | | 「本扩展写文件 / 写配置失败」 | 「加载器没把内容加载进去」 | 「加载进去了但执行失败」 |
 | --- | --- | --- | --- |
-| 触发点 | `cursor/mouse/word-inject.js` 的 `没找到目标文件` 抛出、`fs.writeFileSync` 的 EACCES/EPERM、`workspace.getConfiguration().update()` 被无效 `settings.json` 拒绝 | 加载器定位不到安装目录、patch 未执行、VS Code 升级后 patch 被覆盖 | 内联脚本抛错（如 `document.body` 为 null） |
+| 触发点 | `mouse/word-inject.js` 的 `没找到目标文件` 抛出、`fs.writeFileSync` 的 EACCES/EPERM、`workspace.getConfiguration().update()` 被无效 `settings.json` 拒绝（光标路径已由 #13 改为 `errors` 通道，不再抛出） | 加载器定位不到安装目录、patch 未执行、VS Code 升级后 patch 被覆盖 | 内联脚本抛错（如 `document.body` 为 null） |
 | `vscode_custom_css.imports` | **缺条目** | 条目齐全但无效 | 条目齐全且有效 |
 | 工作台 `workbench.html` | 无 `VSCODE-CUSTOM-CSS-START` 标记 | 无标记，或标记里没有对应标签 | 标记在、内容在 |
 | CSS 效果 | 一起失效（内容也没写） | 一起失效 | **正常** |
-| 用户可见信号 | 通常**无弹窗**：`eventMap[key]()` 在 `onDidChangeConfiguration` 里同步调用，抛错会中断该处理器，`flushChanges` 的防抖定时器**不会被设置**（见 `extension.js:144-155`），于是配置根本不写、也不提示 | 加载器会弹 `unable to locate …` / `cannot load` 类消息 | DevTools 控制台有 `Uncaught TypeError` |
+| 用户可见信号 | 通常**无弹窗**：`eventMap[key]()` 在 `onDidChangeConfiguration` 里同步调用，抛错会中断该处理器，`flushChanges` 的防抖定时器**不会被设置**（见 `extension.js:144-155`），于是配置根本不写、也不提示（鼠标/文字仍如此；光标自 #13 起会走 `showErrorMessage`，`cursor-inject.js:108-112`） | 加载器会弹 `unable to locate …` / `cannot load` 类消息 | DevTools 控制台有 `Uncaught TypeError` |
 | 典型处置 | 看扩展宿主日志 + `settings.json` | 重跑 `Reload Custom CSS and JS` | 改效果脚本的初始化时序 |
 
 **这次两个报障都属于第三列**（CSS 正常 ⇒ patch 存在、imports 生效 ⇒ 加载器工作正常），这一点是后面「不需要换加载器」判断的关键前提。
@@ -198,7 +200,7 @@ PR #281（提交 `d35c9ac6`，2026-05-19，标题 `fix: inject CSS into <head> f
 9. 当前 CSP 中 `script-src` 无 `'unsafe-inline'`、`style-src` 有 `'unsafe-inline'`（历史 #189 的机制仍具备「只杀 JS」的能力）。
 10. `top-active-tab.css` 的 6 类名中，`has-icon`、`tab-border-top` 在 VS Code 源码中为**条件性**添加；`sizing-fit`、`tab-actions-right` 取决于用户设置。
 11. `gradient.horizontal`（鼠标拖轨）在 manifest 中**默认关闭**，且描述自承 `(buggy)`。
-12. 本仓库 `.vscodeignore` 未排除 `src/`，三个 JS 资产会随扩展发布 → 「目标文件缺失」不是#2 的成因（`styleConfigUpdate` 的 `没找到目标文件` 路径可排除）。
+12. 本仓库 `.vscodeignore` 未排除 `src/`，三个 JS 资产会随扩展发布 → 「目标文件缺失」不是 #2 的成因（`mouse-inject.js:55` / `word-inject.js:83` 的 `没找到目标文件` 路径可排除；光标路径在 #13 后已改走 `errors` 通道）。
 13. CSS 能生效 ⇒ 加载器已成功定位并写入 `workbench.html` ⇒ #2 的 `vscode_custom_css.imports` 里至少 CSS 条目存在且可用。
 
 ### 高度可疑（证据强但缺运行期确认）
