@@ -180,7 +180,9 @@ test("imports 直通：原样返回传入的 currentImports", () => {
     readText,
   });
 
-  // 本工单不做导入规划（#12 的职责），只保证原样透传、不修改入参。
+  // #12 之后 imports 不再是无条件直通；这里之所以原样返回，是因为该效果描述符没有
+  // `enabled` 字段（配置未设置 = 未启用），reload 对未启用的效果不产生任何导入意图。
+  // 断言保持不变，只是原因换了：见 test/import-planning.test.mjs 的导入规划用例。
   assert.deepEqual(plan.imports, currentImports);
   assert.deepEqual(currentImports, snapshot);
 });
@@ -208,11 +210,14 @@ test("空输入也返回结构完整的结果，绝不返回 undefined", () => {
     imports: [],
     notices: [],
     errors: [],
+    // #12 新增的结算结果字段：输入没有变更状态表，输出也没有。
+    nextChangeStates: {},
   });
   assert.ok(Array.isArray(plan.writes));
   assert.ok(Array.isArray(plan.imports));
   assert.ok(Array.isArray(plan.notices));
   assert.ok(Array.isArray(plan.errors));
+  assert.equal(typeof plan.nextChangeStates, "object");
 });
 
 test("尚未实现的 marker-block 渲染方式报告错误且不写盘", () => {

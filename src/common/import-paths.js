@@ -1,6 +1,19 @@
 import * as path from "node:path";
 
 /**
+ * 一条 import 路径（或本地路径）的匹配键：basename，忽略大小写。
+ *
+ * 这个函数是"哪两条路径算同一个文件"的唯一事实来源，移除与去重都复用它，
+ * 避免两处各自实现一套归一化规则。
+ *
+ * @param {string} p 本地路径或 URI 字符串
+ * @returns {string}
+ */
+export function basenameKey(p) {
+  return path.basename(p).toLowerCase();
+}
+
+/**
  * 从 import 路径列表中移除指定路径对应的条目。
  *
  * 匹配依据是每条路径的 basename 而非完整路径：Custom CSS & JS Loader 的
@@ -17,9 +30,7 @@ import * as path from "node:path";
  * @returns {string[]} 移除后的新 import 列表
  */
 export function removeByBasename(imports, removePaths) {
-  const removeSet = new Set(
-    removePaths.map((p) => path.basename(p).toLowerCase()),
-  );
+  const removeSet = new Set(removePaths.map(basenameKey));
 
-  return imports.filter((p) => !removeSet.has(path.basename(p).toLowerCase()));
+  return imports.filter((p) => !removeSet.has(basenameKey(p)));
 }

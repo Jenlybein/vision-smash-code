@@ -63,9 +63,10 @@ export async function StyleConfigUpdate() {
         segments,
       },
     ],
-    // 变更状态本工单不参与内容生成，导入规划留给 #12。
+    // 这里只要"写什么"：变更状态与导入列表由 extension.js 的 flushChanges 统一结算
+    // （#12 起都在 planRefresh 里），本调用不参与导入规划，因此 changeStates 为空表、
+    // currentImports 为空——`plan.imports` 在本次调用里是无意义的输出，不要把它写回配置。
     changeStates: {},
-    // imports 本工单按直通处理，同样留给 #12。
     currentImports: [],
     readText,
   });
