@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as path from "path";
 import fs from "fs";
 
+import { planRefresh } from "../common/refresh-plan.js";
+
 // 代码块标记
 const blockStart = "/* __AUTO_CONFIG_START__ */";
 const blockEnd = "/* __AUTO_CONFIG_END__ */";
@@ -61,34 +63,51 @@ function getCursorConfig() {
   };
 }
 
+// 基于 fs 的读取适配器：文件缺失返回 null（纯函数不得抛异常，缺失由它记入 errors）。
+function readText(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
 // 更新配置到目标文件
+// 职责只有：读配置 → 构造描述符 → 调计划 → 执行计划结果。判断逻辑都在 planRefresh 里。
 export async function StyleConfigUpdate() {
-  if (!fs.existsSync(targetFilePath)) {
-    throw new Error(`没找到目标文件: ${targetFilePath}`);
+  const plan = planRefresh({
+    effects: [
+      {
+        key: "cursor",
+        kind: "marker-block",
+        targetPath: targetFilePath,
+        // 内容生成与 base 开关无关（与迁移前一致：只有配置变化时才写配置块）；
+        // `enabled` 只供导入规划使用，渲染不看它。
+        enabled:
+          vscode.workspace
+            .getConfiguration("visionSmashCode.base")
+            .get("cursor") === true,
+        markers: { start: blockStart, end: blockEnd },
+        variableName: "cursorConfig",
+        config: getCursorConfig(),
+      },
+    ],
+    // 这里只要"写什么"：变更状态与导入列表由 extension.js 的 flushChanges 统一结算
+    // （#12 起都在 planRefresh 里），本调用不参与导入规划，因此 changeStates 为空表、
+    // currentImports 为空——`plan.imports` 在本次调用里是无意义的输出，不要把它写回配置。
+    changeStates: {},
+    currentImports: [],
+    readText,
+  });
+
+  // 执行层只执行计划：写盘是调用方的责任，计划本身不产生副作用。
+  for (const write of plan.writes) {
+    fs.writeFileSync(write.path, write.content, "utf-8");
   }
-  const originalCode = fs.readFileSync(targetFilePath, "utf8");
 
-  // 生成配置代码块（格式化 JSON，保持可读性）
-  const config = getCursorConfig();
-  const configText = JSON.stringify(config, null, 2);
-  const configBlock = `${blockStart}\nconst cursorConfig = ${configText};\n${blockEnd}`;
-
-  // 构造用于匹配配置代码块的正则表达式
-  const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const markerRegex = new RegExp(
-    `${escapeRegExp(blockStart)}[\\s\\S]*?${escapeRegExp(blockEnd)}`,
-    "m",
-  );
-
-  let updatedCode;
-  if (markerRegex.test(originalCode)) {
-    // 找到已有配置块，直接替换整段内容
-    updatedCode = originalCode.replace(markerRegex, configBlock);
-  } else {
-    // 未找到标记，尝试在文件头插入
-    updatedCode = `${configBlock}\n\n${originalCode}`;
+  // 与迁移前的差异：目标文件缺失原本 throw `没找到目标文件: <path>`（async 调用方未 await，
+  // 实际表现为未处理的 Promise 拒绝，使用者看不到任何提示）；现在走 errors 通道显式提示。
+  for (const error of plan.errors) {
+    vscode.window.showErrorMessage(`光标拖尾：${error.message}`);
   }
-
-  // 写入文件
-  fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
 }
