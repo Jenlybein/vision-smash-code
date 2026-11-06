@@ -15,7 +15,7 @@ import * as path from "node:path";
  * - 渐变：路径固定，开关用 `!== false` 判定；
  * - 窗口动效：路径随枚举值变化、个别类型额外拼一段、部分片段要做时长占位替换。
  *
- * 把这份知识留在 `animation-inject.js`（那个文件 import vscode，测试加载不了）里，
+ * 把这份知识留在 import vscode 的执行层（`src/install/refresh-effect.js`，测试加载不了）里，
  * "启用 Scrolling 时 _Animate.css 的位置"就只能靠人工核对；放在这里，
  * 测试可以用**真实布局**构造描述符，再断言接缝拼出来的内容。
  *

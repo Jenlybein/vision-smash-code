@@ -17,7 +17,7 @@
  *
  * 这两个函数是纯的：不 import `vscode`、不 import `fs`、不读配置。
  * 这样 `node --test` 可以直接加载它们，与迁移前的旧实现**逐字节比对**。
- * 若把它们放进 `src/install/*-inject.js`（那些模块顶部就 `import * as vscode`），
+ * 若把它们放进 `src/install/refresh-effect.js`（那个模块顶部就 `import * as vscode`），
  * 测试就只能把同一份排版逻辑抄一遍再自己断言自己——那样的测试没有价值。
  */
 
