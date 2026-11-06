@@ -28,10 +28,13 @@ import * as path from "node:path";
  *    未设置（`undefined`）按"启用"处理，与重构前逐字节一致（会去读 `undefined.css` 并报错）。
  * 4. `Smooth-Mode` / `Tokens` 走 `Misc/`，开关语义是"真值"（未设置 = 关闭）。
  * 5. 时长占位替换只发生在标了 `duration: true` 的片段上，键就是该片段的 `setting`：
- *    - `_Duration.css`：**占位符实际所在的位置**（`--<type>-duration` 那一段的定义行）。
- *      重构前只在 `<枚举值>.css` 上做替换，而那些文件里没有占位符，
- *      所以四类枚举动画的时长配置从来没有生效过；这里把它修掉。
- *    - `<枚举值>.css`：沿用重构前的替换范围（今天这些文件里没有占位符，替换是空操作）。
+ *    - `<枚举值>.css`：**与重构前完全相同的替换范围**。今天这些文件里没有占位符，
+ *      因此替换是空操作——这正是重构前的实际效果，不要"顺手修好"。
+ *    - `_Duration.css`：**不参与**替换。占位符虽然写在这个文件里，但重构前的
+ *      `updateDuration` 只作用于 `<枚举值>.css`，所以四类枚举动画的时长配置
+ *      （`Durations` 与 `Default-Duration`）从上线起就没有生效过，样式表里始终是
+ *      资产写死的 300ms。这是**既有缺陷**；本工单的硬约束是"行为不变"，
+ *      因此只把它记录在 ADR-0001 的「仍未达成」里，不在本次修复。
  *    - `Misc/Smooth-Mode.css`：本来就有占位符，重构前已生效，保持。
  *    - `Misc/Tokens.css`：**不**参与时长替换（重构前也没有替换过它）。
  */
@@ -75,7 +78,8 @@ export function buildAnimationSegments(cssRoot) {
       setting: key,
       rule: "not-none",
       path: path.join(cssRoot, key, "_Duration.css"),
-      duration: true,
+      // 不标 `duration`：占位符虽在这里，重构前却从未被替换过（既有缺陷，见文件头第 5 条）。
+      // 标上它会让默认配置下的 Tabs/Active/Scrolling 从 300ms 变成 200ms，属于行为变更。
     });
 
     if (type.animate) {

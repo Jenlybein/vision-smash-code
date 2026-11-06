@@ -181,7 +181,10 @@ test("Smooth-Mode 与 Tokens 都走 Misc/，且只在开关为真时拼接", () 
   assert.ok(tokensAt > smoothAt);
 });
 
-test("时长占位被替换为 Durations 里配置的毫秒值", () => {
+// 时长占位：重构前 `updateDuration` 只作用于 `<枚举值>.css`，而占位符实际写在
+// `_Duration.css` 里，因此四类枚举动画的时长配置**从未生效**，样式表里始终是资产
+// 写死的 300ms。按「行为不变」硬约束，本次保留这一既有缺陷（见 ADR-0001「仍未达成」）。
+test("Durations 不影响 _Duration.css：四类枚举动画的时长配置从未生效（既有缺陷）", () => {
   const { plan } = planAnimation({
     settings: { ...allOff(), Tabs: "Slide" },
     durations: { Tabs: 500 },
@@ -189,13 +192,16 @@ test("时长占位被替换为 Durations 里配置的毫秒值", () => {
   });
 
   assert.deepEqual(plan.errors, []);
+  const content = writtenContent(plan);
+
   assert.equal(
-    writtenContent(plan),
-    "[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: 500ms[Tabs/Slide]",
+    content,
+    `[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: ${PLACEHOLDER}[Tabs/Slide]`,
   );
+  assert.equal(content.includes("500ms"), false);
 });
 
-test("Durations 未单独配置该类型时回退到 Default-Duration", () => {
+test("Default-Duration 也不作用于 _Duration.css（沿用重构前的替换范围）", () => {
   const { plan } = planAnimation({
     settings: { ...allOff(), Tabs: "Slide" },
     // 配了别的类型，但没配 Tabs。
@@ -204,23 +210,29 @@ test("Durations 未单独配置该类型时回退到 Default-Duration", () => {
   });
 
   assert.deepEqual(plan.errors, []);
+  const content = writtenContent(plan);
+
   assert.equal(
-    writtenContent(plan),
-    "[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: 420ms[Tabs/Slide]",
+    content,
+    `[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: ${PLACEHOLDER}[Tabs/Slide]`,
   );
+  assert.equal(content.includes("420ms"), false);
 });
 
-test("Durations 整项缺失时同样回退到 Default-Duration", () => {
+test("Durations 整项缺失时 _Duration.css 的占位同样保持原样", () => {
   const { plan } = planAnimation({
     settings: { ...allOff(), Tabs: "Slide" },
     defaultDuration: 250,
   });
 
   assert.deepEqual(plan.errors, []);
+  const content = writtenContent(plan);
+
   assert.equal(
-    writtenContent(plan),
-    "[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: 250ms[Tabs/Slide]",
+    content,
+    `[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: ${PLACEHOLDER}[Tabs/Slide]`,
   );
+  assert.equal(content.includes("250ms"), false);
 });
 
 test("两者都没有配置时，占位符保持原样", () => {
@@ -235,7 +247,7 @@ test("两者都没有配置时，占位符保持原样", () => {
   );
 });
 
-test("单类型时长越界时回退到默认时长", () => {
+test("单类型时长越界、回退到的默认时长同样不作用于 _Duration.css", () => {
   const { plan } = planAnimation({
     settings: { ...allOff(), Tabs: "Slide" },
     durations: { Tabs: 20000 },
@@ -243,10 +255,14 @@ test("单类型时长越界时回退到默认时长", () => {
   });
 
   assert.deepEqual(plan.errors, []);
+  const content = writtenContent(plan);
+
   assert.equal(
-    writtenContent(plan),
-    "[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: 300ms[Tabs/Slide]",
+    content,
+    `[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: ${PLACEHOLDER}[Tabs/Slide]`,
   );
+  // 占位文案里的 `*/ 300ms;` 不算替换：真正替换后形如 `--tabs-duration: 300ms`。
+  assert.equal(content.includes("--tabs-duration: 300ms"), false);
 });
 
 test("单类型时长与默认时长都越界时，占位符保持原样", () => {
@@ -263,7 +279,7 @@ test("单类型时长与默认时长都越界时，占位符保持原样", () =>
   );
 });
 
-test("枚举动画片段本身也参与时长替换（沿用重构前的替换范围）", () => {
+test("枚举动画片段本身仍按重构前的范围参与时长替换", () => {
   const files = makeFiles({
     [asset("Tabs", "Slide.css")]: `[Tabs/Slide] ${PLACEHOLDER}`,
   });
@@ -276,9 +292,30 @@ test("枚举动画片段本身也参与时长替换（沿用重构前的替换�
   });
 
   assert.deepEqual(plan.errors, []);
+  // `_Duration.css` 原样，`<枚举值>.css` 才被替换——与重构前的调用点一致。
   assert.equal(
     writtenContent(plan),
-    "[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: 600ms[Tabs/Slide] 600ms",
+    `[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: ${PLACEHOLDER}[Tabs/Slide] 600ms`,
+  );
+});
+
+test("时长回退链（Durations → Default-Duration）在枚举片段上仍然有效", () => {
+  const files = makeFiles({
+    [asset("Tabs", "Slide.css")]: `[Tabs/Slide] ${PLACEHOLDER}`,
+  });
+
+  const { plan } = planAnimation({
+    settings: { ...allOff(), Tabs: "Slide" },
+    // 配了别的类型：Tabs 走 Default-Duration 回退。
+    durations: { Active: 900 },
+    defaultDuration: 420,
+    files,
+  });
+
+  assert.deepEqual(plan.errors, []);
+  assert.equal(
+    writtenContent(plan),
+    `[Default-Transitions][Custom-Animations][Tabs/_Duration] --tabs-duration: ${PLACEHOLDER}[Tabs/Slide] 420ms`,
   );
 });
 

@@ -133,9 +133,32 @@ planRefresh({ effects, changeStates, currentImports, readText, fileExists, toImp
 ### 偏离本文建议之处
 
 1. **`RemovePaths` 被删除，而非「作为内部接缝保留」。** 它的唯一调用点已改由 `planRefresh` → `removeByBasename` 承担；删除后它已无任何调用者，留着就变成本文自己批评过的「接口上的虚假承诺」（与 `GetPath()` 同类）。基元函数 `removeByBasename` 保留在 `src/common/import-paths.js` 中作为实现细节。
-2. **`updateDuration` 未单独保留为内部接缝**，其语义并入窗口动效的渲染实现（#14）。
+2. **`updateDuration` 未单独保留为内部接缝**，其能力并入窗口动效的渲染实现（#14）——即
+   `css-concat` 的 `duration: true` 片段上做占位替换，判定规则（`Durations[key]` 优先、
+   回退 `Default-Duration`、越界按未配置处理、替换成 `<值>ms`）逐条等价。
+   **替换范围也必须与重构前一致**：只作用于 `<枚举值>.css`，不作用于 `_Duration.css`
+   （见下条）。
+
+### 更正：`Durations` 对四类枚举动画从未生效是**既有缺陷**，本次未修
+
+实施 #14 时曾把 `_Duration.css` 片段也标上 `duration: true`，理由是"占位符实际写在这个文件里，
+顺带把没生效的时长配置修好"。这**违反了本工单「行为不变」的硬约束**，已在收尾评审（F3）中回退：
+
+- 重构前 `updateDuration` 只对 `${key}/${setting}.css` 调用，而那些 `<枚举值>.css` 里没有占位符，
+  所以替换是空操作；
+- 占位符真正所在的 `_Duration.css` 是**原样拼接**的，样式表里始终是资产写死的 `300ms`；
+- 于是默认配置（`Durations.Tabs/Active/Scrolling = 200`）下，Tabs / Active / Scrolling 的时长
+  一直是 300ms，而不是配置里的 200ms。把它"修好"会让这三类动画真的变快 —— 这是用户可见的行为变更。
+
+结论：该缺陷被**保留**，并登记到「仍未达成」。修复它需要单独的行为变更决策（改 `package.json`
+里 `Durations` 的说明文案，或在补丁说明里明确告知用户时长会变），不属于「行为不变」的重构收尾。
 
 ### 仍未达成
 
 - `extension.js` 里内容写入仍在 `eventMap` 中即时触发，与 `flushChanges` 的导入结算分离；两者是否合并，需要一个显式的时序决策（见 #14 的注意事项）。
+- **`Durations`（以及它的回退 `Default-Duration`）对 `Command-Palette` / `Tabs` / `Active` / `Scrolling`
+  四类枚举动画从未生效**（占位符在 `_Duration.css` 里，而替换只作用于 `<枚举值>.css`）。
+  重构前后行为一致，本次按「行为不变」硬约束**未修**。同一缺陷还让 `package.json` 中
+  `visionSmashCode.animations.Durations` 的说明（"可以为每个动画单独设置时长"）对四类枚举动画不成立，
+  该文案同样未改。修复它属于有意的行为变更，需要单独决策。
 
