@@ -90,7 +90,3 @@ export function updateDuration(css, key) {
   return css;
 }
 
-// 获取加载文件路径
-export function GetPath() {
-  return targetFilePath;
-}
