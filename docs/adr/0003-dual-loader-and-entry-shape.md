@@ -6,7 +6,8 @@
 - **范围**：`src/common/loader-adapter.js`（后端声明与注册表）、`src/install/loader-switch.js`
   （切换清理）、`extension.js`（选择与接线）、`package.json` 的 `contributes.configuration`
   与 `extensionDependencies`。**不涉及**渲染接缝（`refresh-plan.js`）、效果数据表、五个资产目录。
-- **决策者**：待定（工单 #22 维护者指示：manifest 采用方案 A）
+- **决策者**：维护者（工单 #22 的指示：manifest 采用方案 A，即移除 `extensionDependencies`；
+  其余结论由实施者按核实到的一手来源整理成文，均已在「核实方法与结论」中标注依据）
 - **相关文档**：Issue #22（本工单）、Issue #21（适配层）、Issue #5（父规格，「追加二：双注入后端」）、
   `docs/adr/0001-deep-module-analysis-of-config-injection.md`、`docs/diagnosis/loader-and-effect-failures.md`
 
@@ -130,8 +131,11 @@ README 里人工验证步骤要盯的点。**本仓库无法在真实 VS Code �
 
 ## 后果
 
-- 正面：后端差异只存在于一个可测试的适配层；业务代码（`extension.js`、各执行层）不出现任何
-  后端名字面量（有测试锁定）；切换不会碰用户自己的注入项；缺后端有可操作提示。
+- 正面：后端差异只存在于一个可测试的适配层；业务代码（`extension.js` 与各执行层）不出现任何
+  后端名字面量或配置键——**该承诺由扫描测试保证**，范围见
+  `test/loader-adapter.test.mjs`：扫描 `extension.js` 与 `src/install/**`、`src/common/**` 下的
+  模块，字面量清单 `BACKEND_NAME_LITERALS` / `LOADER_LITERALS` 就在该文件里，适配层是唯一豁免；
+  切换不会碰用户自己的注入项；缺后端有可操作提示。
 - 负面：默认后端仍是 `be5invis`，`custom-ui-style` 上的 JS 效果**可能真的不生效**（ESM 语义），
   这是该后端的固有限制，不是本仓库的实现缺陷；在没有第三方修复前，文档只能如实标注实验性。
 - 影响面：`package.json` 只动 `contributes.configuration` 与 `extensionDependencies`；

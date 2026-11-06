@@ -154,7 +154,7 @@ async function flushChanges() {
 // 两条边界：
 // - 新后端不可用 → 什么都不改动（继续用旧后端），只提示安装。已经在工作的效果不会因为
 //   一次无效切换突然消失，也不会往新后端的配置键写任何东西。
-// - 新旧后端相同（例如从显式 be5invis 改成未设置、默认仍是 be5invis）→ 无需清理。
+// - 新旧后端相同（例如从"显式选中的默认后端"改成"未设置、仍落到同一个默认后端"）→ 无需清理。
 async function handleLoaderChange() {
   const previous = loader;
   const next = applyLoaderSetting();

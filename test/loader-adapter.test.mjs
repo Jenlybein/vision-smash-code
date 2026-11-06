@@ -273,3 +273,54 @@ test("扩展入口通过适配层访问底层加载器，不自己拼键名或�
   assert.doesNotMatch(source, /getConfiguration\(\s*["']vscode_custom_css/);
   assert.doesNotMatch(source, /executeCommand\(\s*["']extension\.updateCustomCSS/);
 });
+
+// ---------------------------------------------------------------------------
+// 业务代码不出现后端**名字**面量（ADR-0003「后果」节的承诺）
+// ---------------------------------------------------------------------------
+//
+// 上一条测试覆盖的是配置键与命令名。这一条覆盖"名字"本身——「后端差异只存在于一个
+// 可测试的适配层」这句承诺，只有在业务代码里连 `be5invis` / `custom-ui-style` 都不出现时才成立。
+//
+// 范围按 ADR 的措辞取「业务代码」：`extension.js` 与 `src/install`、`src/common` 下的模块。
+// 五个效果目录（`src/neovide-cursor` 等）是**注入进 VS Code 的载荷脚本**，不是扩展宿主模块：
+// 它们既不读也不写加载器配置，其中的历史注释提到后端名属于解释性文字，不在本条承诺范围内。
+
+const BACKEND_NAME_LITERALS = [
+  "be5invis",
+  "custom-ui-style",
+  "subframe7536.custom-ui-style",
+  "Custom CSS and JS Loader",
+  "Custom UI Style",
+];
+
+function businessModules() {
+  return [
+    entryFile,
+    ...listHostModules(path.join(repoRoot, "src", "install")),
+    ...listHostModules(path.join(repoRoot, "src", "common")),
+  ];
+}
+
+test("业务代码里不出现后端名字面量（名字只留在适配层）", () => {
+  const offenders = [];
+  for (const file of businessModules()) {
+    const source = fs.readFileSync(file, "utf8");
+    for (const literal of BACKEND_NAME_LITERALS) {
+      if (source.includes(literal)) offenders.push(`${relative(file)}: ${literal}`);
+    }
+  }
+
+  // 扫描本身确实有效：适配层里必须能找到这些名字，否则下面的空结果是假象。
+  const adapterSource = fs.readFileSync(adapterFile, "utf8");
+  for (const literal of BACKEND_NAME_LITERALS) {
+    assert.ok(
+      adapterSource.includes(literal),
+      `适配层里应当出现 ${literal}，实际没有`,
+    );
+  }
+
+  assert.deepEqual(
+    offenders.filter((line) => !line.startsWith("src/common/loader-adapter.js")),
+    [],
+  );
+});
