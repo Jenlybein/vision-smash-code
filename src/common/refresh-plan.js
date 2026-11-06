@@ -1,4 +1,4 @@
-import { basenameKey, removeByBasename } from "./import-paths.js";
+import { normalizePathKey, removeOwnedEntries } from "./import-paths.js";
 
 /**
  * 配置刷新的纯函数接缝：把"配置快照 + 变更意图"算成
@@ -41,12 +41,15 @@ import { basenameKey, removeByBasename } from "./import-paths.js";
  * 7. `imports: string[]`：下一份注入列表（由底层加载器适配层负责写回配置，
  *    见 `src/common/loader-adapter.js`）。语义与重构前
  *    `flushChanges` + `RemovePaths` / `AddPaths` 的组合同值：
- *    - 状态 `switch`：启用 → 加入；未启用 → 按 basename（**忽略大小写**）移除；
+ *    - 状态 `switch`：启用 → 加入；未启用 → 移除**指向本扩展资产的**条目
+ *      （判据见 `src/common/import-paths.js`：路径归一化后须形如 `…/src/<资产目录>/<资产文件>`，
+ *      忽略大小写。用户自己的同名条目因此不会被误删）；
  *    - 状态 `reload`：**仅当启用时**先移除再加入（重新落到列表末尾，这是触发重载的关键）；
  *    - 状态 `none`：不动；
  *    - 顺序：先移除（移除集合 = 要移除的 + **要新增的**，等价于重构前的
  *      `removePaths.concat(addPaths)`），再按效果顺序把新增项追加到末尾；
- *    - 去重：同一份文件（basename 相同，忽略大小写）只保留一条，重复路径不产生重复条目；
+ *    - 去重：同一份文件（归一化路径相同，忽略大小写）只保留一条，重复路径不产生重复条目；
+ *      用户自建的、与我们同名的**其它**文件不算同一份文件；
  *    - `targetPath` 为空（效果尚未初始化）→ 整条跳过，既不增也不删；
  *    - 文件缺失 / URI 转换失败 / 注入能力缺失 → 该条不加入并记错误，
  *      **绝不让 `undefined` 或非字符串值流向"写全局配置"那一步**（本模块修掉的缺陷）。
@@ -231,18 +234,20 @@ function planImports({
 
   // 与重构前 `RemovePaths(imports, removePaths.concat(addPaths))` 等价：
   // 移除集合里同时包含"要移除的"与"要新增的"，新增项因此总能重新落到列表末尾（去重 / 重加）。
-  // removeByBasename 返回新数组，因此后续 push 不会修改调用方的 currentImports。
-  const imports = removeByBasename(currentImports, [
+  // removeOwnedEntries 返回新数组，因此后续 push 不会修改调用方的 currentImports。
+  // 判据是"指向本扩展的资产路径"，不是 basename——用户自建的同名条目必须留下（评审 F8）。
+  const imports = removeOwnedEntries(currentImports, [
     ...removePaths,
     ...addPaths,
   ]);
   // 去重集合：现有条目（已去掉本轮要移除/重加的）加上本轮已成功加入的。
-  const planned = new Set(imports.map(basenameKey));
+  // 用归一化路径而不是 basename：用户列表里可能有一条同名的**别的**文件。
+  const planned = new Set(imports.map(normalizePathKey));
 
   const errors = [];
   for (const filePath of addPaths) {
-    const key = basenameKey(filePath);
-    // 去重：同一份文件（basename 相同，忽略大小写）在列表里只留一条。
+    const key = normalizePathKey(filePath);
+    // 去重：同一份文件（归一化路径相同，忽略大小写）在列表里只留一条。
     if (planned.has(key)) continue;
 
     // 注入能力缺失 = 无法校验存在性 / 无法转换形式：该条不加入并报告，

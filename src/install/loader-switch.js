@@ -1,11 +1,11 @@
-import { removeByBasename } from "../common/import-paths.js";
+import { removeOwnedEntries } from "../common/import-paths.js";
 
 /**
  * 切换注入后端时的执行层。
  *
  * 设置项 `visionSmashCode.loader` 变化时，顺序必须是「先把本扩展的条目从旧后端清掉，
  * 再把它们写到新后端」。本模块只负责这个顺序与失败隔离，其余判断都在别处：
- * 该注入哪些路径由 `planRefresh` 决定（这里只按 basename 移除本扩展的目标文件），
+ * 该注入哪些路径由 `planRefresh` 决定（这里只移除指向本扩展 `src/<资产目录>/` 的条目），
  * 具体读写哪个配置键由适配层决定（这里不认识任何后端）。
  *
  * ## Interface（调用者为正确使用必须知道的一切）
@@ -13,8 +13,10 @@ import { removeByBasename } from "../common/import-paths.js";
  * - `switchLoader({ previous, ourPaths, flush, reportError }) => Promise<{ errors: string[] }>`
  *   - `previous`：旧后端的适配器；`null` / 省略表示"根本没有旧后端"（例如首次激活时
  *     所选后端未安装），此时跳过清理，直接写新后端。
- *   - `ourPaths`：本扩展的注入目标文件（本地绝对路径）。**只按 basename 匹配移除**，
- *     因此用户自己的其它注入项不会被删——这是本模块唯一的删除判据。空路径被忽略。
+ *   - `ourPaths`：本扩展的注入目标文件（本地绝对路径）。**只移除指向本扩展
+ *     `src/<资产目录>/<资产文件>` 的条目**（判据同 `src/common/import-paths.js`），
+ *     因此用户自己的其它注入项不会被删——包括用户自建的、与我们资产同名的文件。
+ *     空路径被忽略。
  *   - `flush`：把条目写进新后端并触达用户（生产实现是 `extension.js` 的 `flushChanges`）。
  *     本模块不关心它具体做什么，只保证**无论清理成败都会调用它**。
  *   - `reportError(message)`：展示一条错误；缺省时只收集不展示。
@@ -51,7 +53,8 @@ export async function switchLoader({
 
   const ours = ourPaths.filter((p) => typeof p === "string" && p.length > 0);
 
-  // 1. 旧后端：只按 basename 移除本扩展的条目。读、写、重载各自独立失败域。
+  // 1. 旧后端：只移除指向本扩展资产路径的条目（basename 相同但目录不符的一律保留）。
+  //    读、写、重载各自独立失败域。
   if (previous) {
     let current = null;
     try {
@@ -61,7 +64,7 @@ export async function switchLoader({
     }
 
     if (Array.isArray(current)) {
-      const cleaned = removeByBasename(current, ours);
+      const cleaned = removeOwnedEntries(current, ours);
 
       // 列表没有变化时什么都不做：避免无谓的配置写入与重载提示。
       if (cleaned.length !== current.length) {

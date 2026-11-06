@@ -403,7 +403,7 @@ test("第三后端：条目是对象的后端也只需加一份声明，业务�
 
   const userEntry = { type: "css", url: "https://example.com/user.css" };
   const { vscode, log } = fakeVscode({
-    imports: [userEntry, "file:///ext/old.js"],
+    imports: [userEntry, "file:///ext/src/legacy/legacy.js"],
   });
   const adapter = createLoaderAdapter({
     vscode,
@@ -413,7 +413,7 @@ test("第三后端：条目是对象的后端也只需加一份声明，业务�
   const target = "/ext/src/gradient-theme/gradient-theme.css";
   const plan = planRefresh({
     effects: [
-      { key: "gradient", targetPath: "/ext/old.js", enabled: false },
+      { key: "gradient", targetPath: "/ext/src/legacy/legacy.js", enabled: false },
       { key: "cursor", targetPath: target, enabled: true },
     ],
     changeStates: { gradient: "switch", cursor: "switch" },

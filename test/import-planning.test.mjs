@@ -15,6 +15,7 @@ const CURSOR_TARGET = "C:\\ext\\src\\neovide-cursor\\neovide-cursor.js";
 const MOUSE_TARGET = "C:\\ext\\src\\mouse-tail\\mouse-tail.js";
 const ANIMATIONS_TARGET =
   "C:\\ext\\src\\vscode-animations\\Vscode-Animations.css";
+const GRADIENT_TARGET = "C:\\ext\\src\\gradient-theme\\gradient-theme.css";
 
 // 与 Custom CSS & JS Loader 配置里的形态一致：vscode.Uri.file(p).toString()。
 const toUri = (filePath) => `file:///${filePath.replace(/\\/g, "/")}`;
@@ -52,9 +53,9 @@ test("切换关闭：按 basename 从导入列表移除该效果的条目", () =
   assert.deepEqual(plan.nextChangeStates, { cursor: "none" });
 });
 
-test("移除按 basename 匹配且忽略大小写", () => {
+test("移除按归一化路径匹配且忽略大小写", () => {
   // 列表里残留的是历史拼写（全小写），目标路径是仓库里的真实大小写。
-  // 忽略大小写是重构前 removeByBasename 的既有语义，这里把它锁在接缝上。
+  // 忽略大小写是重构前就有的语义，这里把它锁在接缝上。
   const legacyUri = "file:///ext/src/vscode-animations/vscode-animations.css";
   const { fileExists, toImportUri } = capabilities([]);
 
@@ -68,6 +69,41 @@ test("移除按 basename 匹配且忽略大小写", () => {
   });
 
   assert.deepEqual(plan.imports, [GRADIENT_URI]);
+});
+
+test("关闭效果时，用户自建的、与本扩展资产同名的条目必须保留", () => {
+  // 评审 F8 的回归点：只按 basename 匹配会把用户自己的同名文件一起删掉。
+  const userSameName = "file:///C:/Users/me/my-theme/gradient-theme.css";
+  const { fileExists, toImportUri } = capabilities([]);
+
+  const plan = planRefresh({
+    effects: [effect("gradient", GRADIENT_TARGET, false)],
+    changeStates: { gradient: "switch" },
+    currentImports: [toUri(GRADIENT_TARGET), userSameName],
+    readText: () => null,
+    fileExists,
+    toImportUri,
+  });
+
+  assert.deepEqual(plan.imports, [userSameName]);
+});
+
+test("去重按归一化路径：用户的同名文件不会顶掉本扩展的条目", () => {
+  // 与上一条同源：去重若也按 basename，本扩展的条目会被"已存在"判定挡住而永远加不进去。
+  const userSameName = "file:///C:/Users/me/my-theme/gradient-theme.css";
+  const { fileExists, toImportUri } = capabilities([GRADIENT_TARGET]);
+
+  const plan = planRefresh({
+    effects: [effect("gradient", GRADIENT_TARGET, true)],
+    changeStates: { gradient: "switch" },
+    currentImports: [userSameName],
+    readText: () => null,
+    fileExists,
+    toImportUri,
+  });
+
+  assert.deepEqual(plan.errors, []);
+  assert.deepEqual(plan.imports, [userSameName, toUri(GRADIENT_TARGET)]);
 });
 
 test("变更状态为 none 时不改动导入列表，状态仍结算为 none", () => {
