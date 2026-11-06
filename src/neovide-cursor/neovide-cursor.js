@@ -536,4 +536,45 @@ class GlobalCursorManager {
 }
 
 // 启动全局光标管理器
-new GlobalCursorManager();
+//
+// 不要改回「顶层直接 new」：底层加载器 be5invis.vscode-custom-css 自 7.5.0 起把本文件
+// 内联到 </head> 之前，脚本同步执行时 document.body 还是 null，构造函数里无条件执行的
+// document.body.appendChild 会抛 TypeError 并终止整个脚本（#18 诊断文档结论 A / issue #2）。
+// 判据明确：body 已存在就立即启动；否则等 DOM 就绪；不靠 setTimeout 硬等。
+(() => {
+  const start = () => new GlobalCursorManager();
+
+  const startIfBodyReady = () => {
+    if (!document.body) return false;
+    start();
+    return true;
+  };
+
+  if (startIfBodyReady()) return;
+
+  const waitForBody = () => {
+    const observer = new MutationObserver(() => {
+      if (startIfBodyReady()) observer.disconnect();
+    });
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+  };
+
+  // readyState 仍是 loading ⇒ DOMContentLoaded 一定会来，等它最省事；
+  // 否则说明它已经触发过（脚本在 DOM 就绪后才被插入），事件永远不会再来，
+  // 只能盯住文档树等 body 出现——只挂监听会让脚本永远不初始化。
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => {
+        if (!startIfBodyReady()) waitForBody();
+      },
+      { once: true },
+    );
+    return;
+  }
+
+  waitForBody();
+})();
