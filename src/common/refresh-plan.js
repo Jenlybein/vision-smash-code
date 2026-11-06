@@ -83,9 +83,17 @@ import { basenameKey, removeByBasename } from "./import-paths.js";
  *   只有显式 `false` 才排除该片段。片段内容直接首尾相接，不插入任何分隔符。
  * - `kind: "marker-block"`：在 `targetPath` 里定位起止标记并整块替换。
  *   ```
- *   { markers: { start, end }, variableName, config }
+ *   { markers: { start, end }, variableName, config }   // 纯数据：两空格缩进 JSON
+ *   { markers: { start, end }, body }                    // 预渲染正文：效果自己排版
  *   ```
- *   - 生成形状：`<start>\nconst <variableName> = <config 的两空格缩进 JSON>;\n<end>`。
+ *   - 生成形状：`<start>\n<正文>\n<end>`。
+ *   - 正文有两种来源，二选一：
+ *     - `variableName` + `config`：正文是 `const <variableName> = <config 的两空格缩进 JSON>;`。
+ *     - `body`（可选，字符串）：正文**原样使用**。给那些需要手工排版的效果用——分节注释、
+ *       行内说明、空行分组这些用 JSON 渲染器还原不了；排版因此留在效果自己那一侧，
+ *       而"标记匹配 / 整块替换 / 头部插入"仍归本模块。`body` 优先于 `variableName` / `config`；
+ *       `body` 为 `null` / 省略时视为未提供；`body` 存在但不是字符串 → `errors` 一条，
+ *       且不读取目标文件。
  *   - `markers.start` / `markers.end` 按**字面量**匹配（内部转义正则元字符）；标记文本
  *     自带注释定界符，由调用方决定。
  *   - 标记存在 → 整块替换；不存在 → 整块插入到文件头，后跟两个换行再接原文。
@@ -331,6 +339,7 @@ function renderCssConcat(effect, readText) {
  * 载荷（描述符上除 markers 外的字段）：
  * - `variableName`：生成 `const <variableName> = ...;` 的变量名。
  * - `config`：任意 JSON 可序列化的配置快照，按两空格缩进渲染。
+ * - `body`：可选，预渲染好的正文（字符串）。给了就用它，`variableName` / `config` 不再参与。
  * - `markers.start` / `markers.end`：**逐字节匹配**的标记文本（含注释定界符）。
  *
  * @returns {{ ok: true, content: string, errors: [] } |
@@ -340,21 +349,42 @@ function renderMarkerBlock(effect, readText) {
   const { start, end } = effect.markers ?? {};
   const { variableName } = effect;
 
-  // 描述符是执行层拼出来的纯数据，字段缺失时不能靠 TypeError 冒泡（接缝不抛异常）。
+  // `body` 存在但不是字符串：显式报错，不要静默退回 config 渲染——那会让执行层
+  // 以为自己传了正文，实际写出去的是另一种排版。
   if (
-    typeof start !== "string" ||
-    start.length === 0 ||
-    typeof end !== "string" ||
-    end.length === 0 ||
-    typeof variableName !== "string" ||
-    variableName.length === 0
+    effect.body !== undefined &&
+    effect.body !== null &&
+    typeof effect.body !== "string"
   ) {
     return {
       ok: false,
       errors: [
         {
           path: effect.targetPath,
-          message: `marker-block 描述符不完整（需要 markers.start、markers.end、variableName）：效果 ${effect.key}`,
+          message: `marker-block 的 body 必须是字符串：效果 ${effect.key}`,
+        },
+      ],
+    };
+  }
+
+  // 有预渲染正文时，正文由效果自己负责，不再要求 variableName。
+  const hasBody = typeof effect.body === "string";
+
+  // 描述符是执行层拼出来的纯数据，字段缺失时不能靠 TypeError 冒泡（接缝不抛异常）。
+  if (
+    typeof start !== "string" ||
+    start.length === 0 ||
+    typeof end !== "string" ||
+    end.length === 0 ||
+    (!hasBody &&
+      (typeof variableName !== "string" || variableName.length === 0))
+  ) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: effect.targetPath,
+          message: `marker-block 描述符不完整（需要 markers.start、markers.end、variableName 或 body）：效果 ${effect.key}`,
         },
       ],
     };
@@ -377,8 +407,12 @@ function renderMarkerBlock(effect, readText) {
     };
   }
 
-  const configText = JSON.stringify(effect.config, null, 2);
-  const block = `${start}\nconst ${variableName} = ${configText};\n${end}`;
+  // 正文来源：有 `body` 就用效果自己排好的版面（分节注释、行内说明、空行分组），
+  // 否则回退到纯数据渲染（`const <变量名> = <两空格缩进 JSON>;`）。
+  const blockBody = hasBody
+    ? effect.body
+    : `const ${variableName} = ${JSON.stringify(effect.config, null, 2)};`;
+  const block = `${start}\n${blockBody}\n${end}`;
 
   // 标记是字面量文本（`/* __AUTO_CONFIG_START__ */` 里含正则元字符），必须整体转义。
   // 非全局 + 惰性匹配 = 只替换**第一处**标记块：异常文件里出现两处时，第二处原样保留，

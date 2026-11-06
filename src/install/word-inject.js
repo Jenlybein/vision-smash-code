@@ -2,6 +2,9 @@ import * as vscode from "vscode";
 import * as path from "path";
 import fs from "fs";
 
+import { planRefresh } from "../common/refresh-plan.js";
+import { renderWordConfigBody } from "../common/marker-bodies.js";
+
 // 代码块标记
 const blockStart = "/* __AUTO_CONFIG_START__ */";
 const blockEnd = "/* __AUTO_CONFIG_END__ */";
@@ -78,87 +81,52 @@ function getWordConfig() {
   };
 }
 
-// 更新配置到目标文件
-export async function StyleConfigUpdate() {
-  if (!fs.existsSync(targetFilePath)) {
-    throw new Error(`没找到目标文件: ${targetFilePath}`);
+// 基于 fs 的读取适配器：文件缺失返回 null（纯函数不得抛异常，缺失由它记入 errors）。
+function readText(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch {
+    return null;
   }
-  const originalCode = fs.readFileSync(targetFilePath, "utf8");
-
-  // 生成配置代码块（格式化 JSON，保持可读性）
-  const config = getWordConfig();
-
-  // 生成配置代码字符串
-  const configLines = [
-    `${blockStart}`,
-    "const explosionConfig = {",
-    "  /* ========= 基础设置 ========= */",
-    `  fontFamily: "${config.fontFamily}",`,
-    `  fontSize: ${config.fontSize},`,
-    `  fontWeight: "${config.fontWeight}",`,
-    `  mode: "${config.mode}", // 'random', 'gravity', 'zoom', 'drift'`,
-    "",
-    "  /* ========= 特效位置偏移 ========= */",
-    `  offsetX: ${config.offsetX},`,
-    `  offsetY: ${config.offsetY},`,
-    "",
-    "  /* ========= 旋转设置 ========= */",
-    `  fixedTilt: ${config.fixedTilt}, // 固定起始角度 (单位：度)`,
-    `  randomTilt: ${config.randomTilt}, // 随机范围角度 (单位：度, 0代表不随机)`,
-    "",
-    "  /* ========= 1. 重力效果参数 (gravity) ========= */",
-    "  gravityConfig: {",
-    `    gravity: ${config.gravityConfig.gravity}, // 重力加速度`,
-    `    initialVelocityY: ${config.gravityConfig.initialVelocityY}, // 向上弹射力度`,
-    `    initialVelocityX: ${config.gravityConfig.initialVelocityX}, // 横向扩散范围`,
-    `    lifeDecay: ${config.gravityConfig.lifeDecay}, // 消失速度`,
-    "  },",
-    "",
-    "  /* ========= 2. 缩放效果参数 (zoom) ========= */",
-    "  zoomConfig: {",
-    `    initialScale: ${config.zoomConfig.initialScale}, // 初始大小倍数`,
-    `    maxScale: ${config.zoomConfig.maxScale}, // 最大扩张倍数`,
-    `    minScale: ${config.zoomConfig.minScale}, // 缩小后的最终大小`,
-    `    zoomSpeed: ${config.zoomConfig.zoomSpeed}, // 变大速率`,
-    `    shrinkSpeed: ${config.zoomConfig.shrinkSpeed}, // 最大后的缩小速率`,
-    `    lifeDecay: ${config.zoomConfig.lifeDecay}, // 透明度消失速度`,
-    "  },",
-    "",
-    "  /* ========= 3. 漂浮效果参数 (drift) ========= */",
-    "  driftConfig: {",
-    `    upwardSpeed: ${config.driftConfig.upwardSpeed}, // 向上漂浮速度`,
-    `    swingRange: ${config.driftConfig.swingRange}, // 左右摆动幅度`,
-    `    swingSpeed: ${config.driftConfig.swingSpeed}, // 摆动频率`,
-    `    lifeDecay: ${config.driftConfig.lifeDecay}, // 消失速度`,
-    "  },",
-    "",
-    "  /* ========= 颜色列表 ========= */",
-    "  colors: [",
-    ...config.colors.map((c) => `    "${c}",`),
-    "  ],",
-    "};",
-    `${blockEnd}`,
-  ];
-
-  const configBlock = configLines.join("\n");
-
-  // 构造用于匹配配置代码块的正则表达式
-  const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const markerRegex = new RegExp(
-    `${escapeRegExp(blockStart)}[\\s\\S]*?${escapeRegExp(blockEnd)}`,
-    "m",
-  );
-
-  let updatedCode;
-  if (markerRegex.test(originalCode)) {
-    // 找到已有配置块，直接替换整段内容
-    updatedCode = originalCode.replace(markerRegex, configBlock);
-  } else {
-    // 未找到标记，尝试在文件头插入
-    updatedCode = `${configBlock}\n\n${originalCode}`;
-  }
-
-  // 写入文件
-  fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
 }
 
+// 更新配置到目标文件
+// 职责只有：读配置 → 构造描述符 → 调计划 → 执行计划结果。判断逻辑都在 planRefresh 里。
+export async function StyleConfigUpdate() {
+  const plan = planRefresh({
+    effects: [
+      {
+        key: "word",
+        kind: "marker-block",
+        targetPath: targetFilePath,
+        // 内容生成与 base 开关无关（与迁移前一致：只有配置变化时才写配置块）；
+        // `enabled` 只供导入规划使用，渲染不看它。
+        enabled:
+          vscode.workspace
+            .getConfiguration("visionSmashCode.base")
+            .get("word") === true,
+        markers: { start: blockStart, end: blockEnd },
+        // 正文（嵌套配置 + 颜色数组 + 分节注释）由效果自己渲染：标记定位 / 整块替换 /
+        // 头部插入这些共用逻辑在接缝里，版面留在这里，两者互不越界。
+        body: renderWordConfigBody(getWordConfig()),
+      },
+    ],
+    // 这里只要"写什么"：变更状态与导入列表由 extension.js 的 flushChanges 统一结算，
+    // 本调用不参与导入规划，因此 changeStates 为空表、currentImports 为空——
+    // `plan.imports` 在本次调用里是无意义的输出，不要把它写回配置。
+    changeStates: {},
+    currentImports: [],
+    readText,
+  });
+
+  // 执行层只执行计划：写盘是调用方的责任，计划本身不产生副作用。
+  for (const write of plan.writes) {
+    fs.writeFileSync(write.path, write.content, "utf-8");
+  }
+
+  // 与迁移前的差异：目标文件缺失原本 throw `没找到目标文件: <path>`（async 调用方未 await，
+  // 实际表现为未处理的 Promise 拒绝，使用者看不到任何提示）；现在走 errors 通道显式提示。
+  for (const error of plan.errors) {
+    vscode.window.showErrorMessage(`文字爆炸：${error.message}`);
+  }
+}
