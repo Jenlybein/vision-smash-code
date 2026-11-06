@@ -1,10 +1,25 @@
 /* 选中标签栏上边框 */
-.tab.tab-actions-right.sizing-fit.has-icon.tab-border-top.active {
+
+/* 依赖的 DOM 结构（见 #18 诊断文档 `证据 E`，issue #1）：
+   编辑器标签栏容器 `.tabs-container` 的直接子元素 `.tab`，且处于活动态 `.active`。
+   VS Code 自己的标签栏样式也用 `.tabs-container > .tab.active` 定位活动标签
+   （`multiEditorTabsControl.ts`），这是标签栏里最稳定的两个锚点。
+
+   不要再把 `has-icon` / `tab-border-top` / `sizing-fit` / `tab-actions-*` 加回来：
+   它们分别由「是否显示图标」、主题是否提供 `tab.activeBorderTop` 颜色、
+   `workbench.editor.tabSizing`、`workbench.editor.tabActionLocation` 决定，
+   都是条件性类名。任一条件不成立，整条规则就静默失效（CSS 不会报错），
+   这就是「顶部活动标签页渐变不生效」的成因。
+
+   该结构变化时的现象：若 VS Code 把标签移出 `.tabs-container`，或不再使用
+   `.tab` / `.active` 这两个类名，本规则不再命中 —— 活动标签顶部的渐变条
+   会直接消失，且没有任何报错或提示。届时只需按新结构更新下面两个选择器。 */
+.tabs-container > .tab.active {
   --tab-border-top-color: transparent !important;
   position: relative;
 }
 
-.tab.tab-actions-right.sizing-fit.has-icon.tab-border-top.active:after {
+.tabs-container > .tab.active:after {
   content: "";
   position: absolute;
   top: 0;
