@@ -2,6 +2,9 @@ import * as vscode from "vscode";
 import * as path from "path";
 import fs from "fs";
 
+import { planRefresh } from "../common/refresh-plan.js";
+import { renderMouseConfigBody } from "../common/marker-bodies.js";
+
 // 代码块标记
 const blockStart = "/* __AUTO_CONFIG_START__ */";
 const blockEnd = "/* __AUTO_CONFIG_END__ */";
@@ -50,65 +53,52 @@ function getMouseConfig() {
   };
 }
 
-// 更新配置到目标文件
-export async function StyleConfigUpdate() {
-  if (!fs.existsSync(targetFilePath)) {
-    throw new Error(`没找到目标文件: ${targetFilePath}`);
+// 基于 fs 的读取适配器：文件缺失返回 null（纯函数不得抛异常，缺失由它记入 errors）。
+function readText(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch {
+    return null;
   }
-  const originalCode = fs.readFileSync(targetFilePath, "utf8");
-
-  // 生成配置代码块（格式化 JSON，保持可读性）
-  const config = getMouseConfig();
-
-  // 生成配置代码字符串，保持与 mouse-tail.js 相同的格式
-  const configLines = [
-    `${blockStart}`,
-    "const mouseConfig = {",
-    `  mode: "${config.mode}", // dots | ribbon | beam | electric | smoke`,
-    "",
-    "  /* ========= 颜色 / 透明度 ========= */",
-    `  tailColor: "${config.tailColor}", // 尾迹主颜色（HEX）`,
-    `  tailOpacity: ${config.tailOpacity}, // 全局透明度倍率（0 ~ 1）`,
-    "",
-    "  /* ========= 阴影 / 发光 ========= */",
-    `  useShadow: ${config.useShadow}, // 是否启用发光阴影`,
-    `  shadowColor: "${config.shadowColor}", // 阴影颜色（HEX）`,
-    `  shadowBlurFactor: ${config.shadowBlurFactor}, // 阴影模糊强度（乘以 startWidth）`,
-    "",
-    "  /* ========= 尾迹长度 / 生命周期 ========= */",
-    `  pointLife: ${config.pointLife}, // 点的生命衰减速度`,
-    `  maxPoints: ${config.maxPoints}, // 最大点数量`,
-    "",
-    "  /* ========= 宽度控制 ========= */",
-    `  startWidth: ${config.startWidth}, // 鼠标头部最大宽度`,
-    `  widthPower: ${config.widthPower}, // 宽度衰减指数`,
-    `  widthDecay: ${config.widthDecay}, // 宽度整体缩放系数`,
-    "",
-    "  /* ========= 亮度 / 能量 ========= */",
-    `  energyCompensation: ${config.energyCompensation}, // 细线时的亮度补偿`,
-    "};",
-    `${blockEnd}`,
-  ];
-
-  const configBlock = configLines.join("\n");
-
-  // 构造用于匹配配置代码块的正则表达式
-  const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const markerRegex = new RegExp(
-    `${escapeRegExp(blockStart)}[\\s\\S]*?${escapeRegExp(blockEnd)}`,
-    "m",
-  );
-
-  let updatedCode;
-  if (markerRegex.test(originalCode)) {
-    // 找到已有配置块，直接替换整段内容
-    updatedCode = originalCode.replace(markerRegex, configBlock);
-  } else {
-    // 未找到标记，尝试在文件头插入
-    updatedCode = `${configBlock}\n\n${originalCode}`;
-  }
-
-  // 写入文件
-  fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
 }
 
+// 更新配置到目标文件
+// 职责只有：读配置 → 构造描述符 → 调计划 → 执行计划结果。判断逻辑都在 planRefresh 里。
+export async function StyleConfigUpdate() {
+  const plan = planRefresh({
+    effects: [
+      {
+        key: "mouse",
+        kind: "marker-block",
+        targetPath: targetFilePath,
+        // 内容生成与 base 开关无关（与迁移前一致：只有配置变化时才写配置块）；
+        // `enabled` 只供导入规划使用，渲染不看它。
+        enabled:
+          vscode.workspace
+            .getConfiguration("visionSmashCode.base")
+            .get("mouse") === true,
+        markers: { start: blockStart, end: blockEnd },
+        // 正文（带分节注释的手工排版）由效果自己渲染：标记定位 / 整块替换 / 头部插入
+        // 这些共用逻辑在接缝里，版面留在这里，两者互不越界。
+        body: renderMouseConfigBody(getMouseConfig()),
+      },
+    ],
+    // 这里只要"写什么"：变更状态与导入列表由 extension.js 的 flushChanges 统一结算，
+    // 本调用不参与导入规划，因此 changeStates 为空表、currentImports 为空——
+    // `plan.imports` 在本次调用里是无意义的输出，不要把它写回配置。
+    changeStates: {},
+    currentImports: [],
+    readText,
+  });
+
+  // 执行层只执行计划：写盘是调用方的责任，计划本身不产生副作用。
+  for (const write of plan.writes) {
+    fs.writeFileSync(write.path, write.content, "utf-8");
+  }
+
+  // 与迁移前的差异：目标文件缺失原本 throw `没找到目标文件: <path>`（async 调用方未 await，
+  // 实际表现为未处理的 Promise 拒绝，使用者看不到任何提示）；现在走 errors 通道显式提示。
+  for (const error of plan.errors) {
+    vscode.window.showErrorMessage(`鼠标尾迹：${error.message}`);
+  }
+}
