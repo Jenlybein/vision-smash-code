@@ -2,6 +2,11 @@ import * as fs from "fs";
 import * as vscode from "vscode";
 import * as path from "path";
 
+import { planRefresh } from "../common/refresh-plan.js";
+import {
+  ANIMATION_SETTING_KEYS,
+  buildAnimationSegments,
+} from "../common/animation-segments.js";
 // 目录名与文件名来自纯常量模块，其大小写由 test/asset-paths.test.mjs 对齐仓库真实文件
 import {
   ANIMATIONS_SOURCE_DIR,
@@ -18,81 +23,54 @@ export function init(context) {
   return targetFilePath;
 }
 
-// 读取指定 CSS 文件内容
-async function getCSSFile(cssFilePath, cssRoot) {
-  const filePath = path.join(cssRoot, cssFilePath);
-  return fs.readFileSync(filePath, "utf8");
+// 基于 fs 的读取适配器：文件缺失返回 null（纯函数不得抛异常，缺失由它记入 errors）。
+function readText(filePath) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch {
+    return null;
+  }
 }
 
+// 更新配置到目标文件
+//
+// 职责只有：读配置 → 构造描述符 → 调计划 → 执行计划结果。
+// "选哪些片段、按什么顺序、路径怎么由枚举值拼出、哪些片段要做时长占位替换"
+// 全在纯函数接缝里（片段布局见 src/common/animation-segments.js）。
 export async function StyleConfigUpdate() {
-  let css = "";
-  // 加入默认过渡效果
-  css += await getCSSFile("Default-Transitions.css", cssRoot);
-  // 加入自定义动画文件
-  css += await getCSSFile("Custom-Animations.css", cssRoot);
+  const config = vscode.workspace.getConfiguration("visionSmashCode.animations");
 
-  // 读取配置文件
-  const config = vscode.workspace.getConfiguration(
-    "visionSmashCode.animations",
+  // 配置快照：把 WorkspaceConfiguration 摊平成普通对象，
+  // 纯函数不依赖 vscode，也就不会在深模块里读到模块级可变状态。
+  const settings = Object.fromEntries(
+    ANIMATION_SETTING_KEYS.map((key) => [key, config.get(key)]),
   );
 
-  // 开启动画的组件
-  for (const key of ["Command-Palette", "Tabs", "Active", "Scrolling"]) {
-    const setting = config.get(key);
-    if (setting !== "None") {
-      css += await getCSSFile(`${key}/_Duration.css`, cssRoot);
-      // 对于 Scrolling，添加动画应用
-      if (key === "Scrolling") {
-        css += await getCSSFile(`${key}/_Animate.css`, cssRoot);
-      }
-      css += updateDuration(
-        await getCSSFile(`${key}/${setting}.css`, cssRoot),
-        key,
-      );
-    }
+  const plan = planRefresh({
+    effects: [
+      {
+        key: "animations",
+        kind: "css-concat",
+        targetPath: targetFilePath,
+        settings,
+        durations: config.get("Durations"),
+        defaultDuration: config.get("Default-Duration"),
+        segments: buildAnimationSegments(cssRoot),
+      },
+    ],
+    // 这里只要"写什么"：变更状态与导入列表由 extension.js 的 flushChanges 统一结算，
+    // 本调用不参与导入规划，因此 changeStates 为空表、currentImports 为空——
+    // `plan.imports` 在本次调用里是无意义的输出，不要把它写回配置。
+    changeStates: {},
+    currentImports: [],
+    readText,
+  });
+
+  for (const write of plan.writes) {
+    fs.writeFileSync(write.path, write.content, "utf-8");
   }
 
-  // 开启平滑模式
-  for (const key of ["Smooth-Mode"]) {
-    if (config.get(key)) {
-      css += updateDuration(await getCSSFile(`Misc/${key}.css`, cssRoot), key);
-    }
+  for (const error of plan.errors) {
+    vscode.window.showErrorMessage(`窗口动效：${error.message}`);
   }
-
-  for (const key of ["Tokens"]) {
-    if (config.get(key)) {
-      css += await getCSSFile(`Misc/${key}.css`, cssRoot);
-    }
-  }
-
-  // 写入文件
-  fs.writeFileSync(targetFilePath, css, "utf-8");
 }
-
-/**
- * 更新动画持续时间
- * @param css 需要更新的css字符串
- * @param key 设置中持续时间的键
- * @returns 更新后的css字符串
- */
-export function updateDuration(css, key) {
-  const config = vscode.workspace.getConfiguration(
-    "visionSmashCode.animations",
-  );
-  let duration = config.get("Durations")[key];
-
-  if (!duration || parseInt(`${duration}`) > 10000) {
-    duration = config.get("Default-Duration");
-    if (!duration || parseInt(`${duration}`) > 10000) {
-      return css;
-    }
-  }
-
-  css = css.replace(
-    /\/\*<Duration>\*\/.*\/\*<\/Duration>\*\//g,
-    `${duration}ms`,
-  );
-
-  return css;
-}
-

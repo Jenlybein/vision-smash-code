@@ -74,18 +74,50 @@ import { basenameKey, removeByBasename } from "./import-paths.js";
  * }
  * ```
  *
- * - `kind: "css-concat"`：按开关拼接若干 CSS 片段。
+ * - `kind: "css-concat"`：按选取规则拼接若干 CSS 片段。
  *   ```
- *   { settings: { [settingKey]: unknown }, segments: [{ setting, path }] }
+ *   {
+ *     settings: { [settingKey]: unknown },  // 配置快照
+ *     segments: [{
+ *       setting,   // 可选：缺省 = 无条件片段（永远拼入，用于固定前缀）
+ *       rule,      // 可选：选取规则，缺省 "enabled"
+ *       path,      // 必填：片段路径；含 `{value}` 时用 settings[setting] 替换
+ *       duration,  // 可选：true = 该片段参与时长占位替换（键 = setting）
+ *     }],
+ *     durations,        // 可选：Durations 配置快照
+ *     defaultDuration,  // 可选：Default-Duration 配置快照
+ *   }
  *   ```
- *   片段选取语义（与重构前 `gradient-inject.js` 逐字节等价）：
- *   `settings[segment.setting] !== false` —— 未设置（`undefined`）视为开启，
- *   只有显式 `false` 才排除该片段。片段内容直接首尾相接，不插入任何分隔符。
+ *   选取规则（`rule`）三条，对应重构前三种不同的开关写法，**不可互相替代**：
+ *   - `"enabled"`（缺省）：`settings[setting] !== false`——未设置视为开启（渐变）；
+ *   - `"not-none"`：`settings[setting] !== "None"`——枚举用字符串 `"None"` 表示关闭（窗口动效）；
+ *   - `"truthy"`：`Boolean(settings[setting])`——未设置视为**关闭**（Smooth-Mode / Tokens）。
+ *   未知规则 → 该效果失败并记一条错误，不静默跳过。
+ *
+ *   `path` 里的 `{value}` 被 `String(settings[setting])` 替换：枚举值决定读哪个片段。
+ *   取值缺失时得到 `"undefined"`，与重构前 `${key}/${setting}.css` 的结果一致
+ *   （读不到文件 → 报错，而不是静默跳过）。
+ *
+ *   时长占位替换（`duration: true`）：把片段里被注释包裹的占位符整段换成 `<配置值>ms`。
+ *   配置值先取 `durations[setting]`，不可用时回退 `defaultDuration`，仍不可用则**原样返回**。
+ *   "可用"= 真值且 `parseInt` 后不超过 10000（`0` / 空值按未配置处理）——与重构前一致。
+ *   没有标 `duration` 的片段（例如 Tokens）不参与替换，内容原样拼接。
+ *
+ *   片段内容直接首尾相接，不插入任何分隔符；拼接顺序就是 `segments` 的顺序，
+ *   `segments` 里片段之间没有任何隐含的依赖。
  * - `kind: "marker-block"`：在 `targetPath` 里定位起止标记并整块替换。
  *   ```
- *   { markers: { start, end }, variableName, config }
+ *   { markers: { start, end }, variableName, config }   // 纯数据：两空格缩进 JSON
+ *   { markers: { start, end }, body }                    // 预渲染正文：效果自己排版
  *   ```
- *   - 生成形状：`<start>\nconst <variableName> = <config 的两空格缩进 JSON>;\n<end>`。
+ *   - 生成形状：`<start>\n<正文>\n<end>`。
+ *   - 正文有两种来源，二选一：
+ *     - `variableName` + `config`：正文是 `const <variableName> = <config 的两空格缩进 JSON>;`。
+ *     - `body`（可选，字符串）：正文**原样使用**。给那些需要手工排版的效果用——分节注释、
+ *       行内说明、空行分组这些用 JSON 渲染器还原不了；排版因此留在效果自己那一侧，
+ *       而"标记匹配 / 整块替换 / 头部插入"仍归本模块。`body` 优先于 `variableName` / `config`；
+ *       `body` 为 `null` / 省略时视为未提供；`body` 存在但不是字符串 → `errors` 一条，
+ *       且不读取目标文件。
  *   - `markers.start` / `markers.end` 按**字面量**匹配（内部转义正则元字符）；标记文本
  *     自带注释定界符，由调用方决定。
  *   - 标记存在 → 整块替换；不存在 → 整块插入到文件头，后跟两个换行再接原文。
@@ -285,11 +317,12 @@ function renderEffect(effect, readText) {
 }
 
 /**
- * 拼接式渲染：按开关选取若干 CSS 片段，首尾相接。
+ * 拼接式渲染：按选取规则选出若干 CSS 片段，首尾相接。
  *
- * 选取语义与重构前 `gradient-inject.js` 逐字节等价：
- * `settings[segment.setting] !== false` —— 未设置（`undefined`）视为开启，
- * 只有显式 `false` 才排除该片段。片段之间不插入任何分隔符。
+ * 片段选取语义由 `segment.rule` 决定（缺省 `"enabled"`，与重构前 `gradient-inject.js`
+ * 的 `settings[key] !== false` 逐字节等价）；`segment.path` 里的 `{value}` 会被该段
+ * `setting` 的取值替换，用于"枚举值决定读哪个文件"的效果（如窗口动效）。
+ * 片段之间不插入任何分隔符。
  *
  * @returns {{ ok: true, content: string, errors: [] } |
  *           { ok: false, errors: Array<{ path?: string, message: string }> }}
@@ -300,22 +333,51 @@ function renderCssConcat(effect, readText) {
   const errors = [];
   let content = "";
 
-  for (const segment of segments) {
-    // 与重构前 `if (setting !== false)` 逐字节等价：未设置（undefined）也算开启。
-    if (settings[segment.setting] === false) continue;
+  // 读取能力缺失：显式报错而不是 `TypeError`——Interface 第 2、4 条。
+  // 一处判断挡住整条效果，不产生任何写入。
+  if (typeof readText !== "function") {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: effect.targetPath,
+          message: `缺少读取能力（readText），无法生成效果 ${effect.key} 的样式表`,
+        },
+      ],
+    };
+  }
 
-    const text = readText(segment.path);
-    if (typeof text !== "string") {
-      // 文件缺失：不抛异常，记为错误项，并让整条效果失败（其余片段继续读取，
-      // 以便一次性报出所有缺失文件）。
+  for (const segment of segments) {
+    const rule = SEGMENT_RULES[segment.rule ?? DEFAULT_SEGMENT_RULE];
+    if (typeof rule !== "function") {
       errors.push({
         path: segment.path,
-        message: `无法读取 CSS 资产文件：${segment.path}`,
+        message: `尚未支持的片段选取规则：${segment.rule}（效果 ${effect.key}）`,
       });
       continue;
     }
 
-    content += text;
+    // 不带 `setting` 的片段是固定片段（永远拼入，例如窗口动效的两段前缀）。
+    if (!isUnconditionalSegment(segment) && !rule(settings[segment.setting])) {
+      continue;
+    }
+
+    const segmentPath = resolveSegmentPath(segment, settings);
+    const text = readText(segmentPath);
+    if (typeof text !== "string") {
+      // 文件缺失：不抛异常，记为错误项，并让整条效果失败（其余片段继续读取，
+      // 以便一次性报出所有缺失文件）。
+      errors.push({
+        path: segmentPath,
+        message: `无法读取 CSS 资产文件：${segmentPath}`,
+      });
+      continue;
+    }
+
+    content +=
+      segment.duration === true
+        ? replaceDurationPlaceholder(text, segment.setting, effect)
+        : text;
   }
 
   // 失败的效果不产生写入：宁可什么都不写，也不写出残缺样式表。
@@ -325,12 +387,106 @@ function renderCssConcat(effect, readText) {
 }
 
 /**
+ * 片段选取规则：把"配置值 → 是否拼接"的判定写成数据，而不是每种效果各写一份 if。
+ *
+ * 三个规则对应重构前三种不同的开关写法，彼此**不能**互相替代：
+ * - `enabled`（缺省）：`!== false`，未设置（`undefined`）视为开启；
+ * - `not-none`：`!== "None"`，枚举以字符串 `"None"` 表示关闭；
+ * - `truthy`：真值判断，未设置视为**关闭**。
+ */
+const SEGMENT_RULES = {
+  enabled: (value) => value !== false,
+  "not-none": (value) => value !== "None",
+  truthy: (value) => Boolean(value),
+};
+
+const DEFAULT_SEGMENT_RULE = "enabled";
+
+/** 片段路径里的取值占位符：被该段 `setting` 的配置值替换（枚举值决定读哪个文件）。 */
+const VALUE_TOKEN = "{value}";
+
+function isUnconditionalSegment(segment) {
+  return segment.setting === undefined || segment.setting === null;
+}
+
+/**
+ * 解析片段路径：`{value}` 用该段 `setting` 的取值替换。
+ *
+ * 取值缺失（`undefined`）时替成字符串 `"undefined"`——这正是重构前
+ * `${key}/${setting}.css` 的结果：读不到文件 → 报错，而不是静默跳过。
+ */
+function resolveSegmentPath(segment, settings) {
+  const template = segment.path;
+  if (isUnconditionalSegment(segment) || !template.includes(VALUE_TOKEN)) {
+    return template;
+  }
+
+  // 函数式替换：配置值里的 `$&` 之类不会被当成替换模式。
+  return template.replace(/\{value\}/g, () =>
+    String(settings[segment.setting]),
+  );
+}
+
+// 时长上限与配置声明一致（`maximum: 10000`）：超过它的值按"未配置"处理。
+const MAX_DURATION_MS = 10000;
+
+// 时长占位符：注释包裹起来的一段文案。拼接后整段（含其中的默认 `300ms`）被换成
+// `<配置值>ms`。正则里 `.` 不匹配换行，因此只会在同一行内匹配——与重构前一致。
+const DURATION_PLACEHOLDER = /\/\*<Duration>\*\/.*\/\*<\/Duration>\*\//g;
+
+/**
+ * 把片段里的时长占位替换成配置的毫秒值。
+ *
+ * 语义与重构前 `updateDuration` 逐字节等价：
+ * - 先用该片段 `setting` 在 `Durations` 里的值；不可用则回退 `Default-Duration`；
+ * - 两者都不可用 → **原样返回**（占位符保留，样式表里仍是资产写死的默认值）；
+ * - "可用"= 真值且不超过 10000；`0` / 空值按"未配置"处理（旧的 `!duration` 语义）；
+ * - 替换成 `<值>ms`，值不做数值归一（字符串配置也原样拼进去）。
+ *
+ * @param {string} text 片段内容
+ * @param {string} key `Durations` 里对应的键（= 该片段的 `setting`）
+ * @param {object} effect 效果描述符（提供 `durations` / `defaultDuration` 快照）
+ * @returns {string}
+ */
+function replaceDurationPlaceholder(text, key, effect) {
+  const duration = resolveDuration(effect, key);
+  if (duration === undefined) return text;
+
+  return text.replace(DURATION_PLACEHOLDER, `${duration}ms`);
+}
+
+/**
+ * 取该片段最终生效的时长：`Durations[key]` 优先，不可用时回退 `Default-Duration`。
+ *
+ * @returns {unknown} 可用的时长值；两者都不可用时返回 `undefined`
+ */
+function resolveDuration(effect, key) {
+  const durations = effect.durations ?? {};
+  const own = durations[key];
+  if (isUsableDuration(own)) return own;
+
+  const fallback = effect.defaultDuration;
+  return isUsableDuration(fallback) ? fallback : undefined;
+}
+
+/**
+ * 时长是否可用。与重构前 `!duration || parseInt(...) > 10000` 的判定等价：
+ * 假值（`0` / `""` / `null` / `undefined`）一律按"未配置"，超过上限的值同样视为未配置。
+ * `parseInt` 对非数字串得到 `NaN`，`NaN > 10000` 为假，因此非数字串会被当作可用——
+ * 这是重构前就有的行为，这里保留而不"顺手修好"（不属于本工单范围）。
+ */
+function isUsableDuration(value) {
+  return Boolean(value) && !(parseInt(`${value}`) > MAX_DURATION_MS);
+}
+
+/**
  * 标记块式渲染：在目标文件里定位起止标记，把两者之间的内容整块替换；
  * 找不到标记时把配置块插入到文件头。
  *
  * 载荷（描述符上除 markers 外的字段）：
  * - `variableName`：生成 `const <variableName> = ...;` 的变量名。
  * - `config`：任意 JSON 可序列化的配置快照，按两空格缩进渲染。
+ * - `body`：可选，预渲染好的正文（字符串）。给了就用它，`variableName` / `config` 不再参与。
  * - `markers.start` / `markers.end`：**逐字节匹配**的标记文本（含注释定界符）。
  *
  * @returns {{ ok: true, content: string, errors: [] } |
@@ -340,21 +496,42 @@ function renderMarkerBlock(effect, readText) {
   const { start, end } = effect.markers ?? {};
   const { variableName } = effect;
 
-  // 描述符是执行层拼出来的纯数据，字段缺失时不能靠 TypeError 冒泡（接缝不抛异常）。
+  // `body` 存在但不是字符串：显式报错，不要静默退回 config 渲染——那会让执行层
+  // 以为自己传了正文，实际写出去的是另一种排版。
   if (
-    typeof start !== "string" ||
-    start.length === 0 ||
-    typeof end !== "string" ||
-    end.length === 0 ||
-    typeof variableName !== "string" ||
-    variableName.length === 0
+    effect.body !== undefined &&
+    effect.body !== null &&
+    typeof effect.body !== "string"
   ) {
     return {
       ok: false,
       errors: [
         {
           path: effect.targetPath,
-          message: `marker-block 描述符不完整（需要 markers.start、markers.end、variableName）：效果 ${effect.key}`,
+          message: `marker-block 的 body 必须是字符串：效果 ${effect.key}`,
+        },
+      ],
+    };
+  }
+
+  // 有预渲染正文时，正文由效果自己负责，不再要求 variableName。
+  const hasBody = typeof effect.body === "string";
+
+  // 描述符是执行层拼出来的纯数据，字段缺失时不能靠 TypeError 冒泡（接缝不抛异常）。
+  if (
+    typeof start !== "string" ||
+    start.length === 0 ||
+    typeof end !== "string" ||
+    end.length === 0 ||
+    (!hasBody &&
+      (typeof variableName !== "string" || variableName.length === 0))
+  ) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: effect.targetPath,
+          message: `marker-block 描述符不完整（需要 markers.start、markers.end、variableName 或 body）：效果 ${effect.key}`,
         },
       ],
     };
@@ -377,8 +554,12 @@ function renderMarkerBlock(effect, readText) {
     };
   }
 
-  const configText = JSON.stringify(effect.config, null, 2);
-  const block = `${start}\nconst ${variableName} = ${configText};\n${end}`;
+  // 正文来源：有 `body` 就用效果自己排好的版面（分节注释、行内说明、空行分组），
+  // 否则回退到纯数据渲染（`const <变量名> = <两空格缩进 JSON>;`）。
+  const blockBody = hasBody
+    ? effect.body
+    : `const ${variableName} = ${JSON.stringify(effect.config, null, 2)};`;
+  const block = `${start}\n${blockBody}\n${end}`;
 
   // 标记是字面量文本（`/* __AUTO_CONFIG_START__ */` 里含正则元字符），必须整体转义。
   // 非全局 + 惰性匹配 = 只替换**第一处**标记块：异常文件里出现两处时，第二处原样保留，
