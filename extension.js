@@ -80,7 +80,10 @@ const eventMap = {};
 for (const [key, mod] of Object.entries(modules)) {
   // 模块自身配置变化 → reload
   eventMap[mod.scope] = () => {
-    refreshEffect(key, extensionPath);
+    // 所选后端不可用（loader 为 null）：**连内容写入也一并跳过**。生成出来的文件没有任何
+    // 加载器会去注入，写它只会在安装目录里留下"看起来生效了"的假象——规格要求不向无人消费的
+    // 路径写任何东西。状态位照旧记账，等后端可用时由切换流程整表重建。
+    if (loader) refreshEffect(key, extensionPath);
     if (changeMap[key] !== "switch") {
       changeMap[key] = "reload";
     }
