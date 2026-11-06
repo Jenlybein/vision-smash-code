@@ -1,10 +1,12 @@
 // @ts-check
 import * as vscode from "vscode";
+import * as fs from "fs";
 import * as cursor from "./src/install/cursor-inject.js";
 import * as animation from "./src/install/animation-inject.js";
 import * as gradient from "./src/install/gradient-inject.js";
 import * as mouse from "./src/install/mouse-inject.js";
 import * as word from "./src/install/word-inject.js";
+import { planRefresh } from "./src/common/refresh-plan.js";
 import * as util from "./src/common/utils.js";
 
 // 模块声明表
@@ -48,6 +50,20 @@ const changeMap = Object.fromEntries(
   Object.keys(modules).map((k) => [k, "none"]),
 );
 
+// 注入给纯函数接缝的 I/O 能力：planRefresh 自己不 import fs / vscode。
+const planCapabilities = {
+  // 存在性判断必须是同步的（纯函数是同步的），异常一律按"不存在"处理。
+  fileExists: (filePath) => {
+    try {
+      return fs.existsSync(filePath);
+    } catch {
+      return false;
+    }
+  },
+  // 本地路径 → Custom CSS & JS Loader 能识别的 URI 形式。
+  toImportUri: (filePath) => vscode.Uri.file(filePath).toString(),
+};
+
 // 生成配置监听事件表
 const eventMap = {};
 for (const [key, mod] of Object.entries(modules)) {
@@ -66,35 +82,45 @@ for (const [key, mod] of Object.entries(modules)) {
 }
 
 // 统一结算配置变更（防抖后执行）
+//
+// 分工（#12 起）：
+// - 判断"哪些路径要被注入"、"下一轮状态是什么"全部在 planRefresh 里（纯函数，可脱离
+//   vscode 测试）。这里只做"读配置 → 调计划 → 写配置 → 展示消息"。
+// - `result.writes` **目前故意不执行**：内容写入的时机与实现保持原样——eventMap 里各效果
+//   的 StyleConfigUpdate 即时调用，渐变由 gradient-inject 自己调 planRefresh 取 writes。
+//   所以下面只使用 `result.imports` / `result.nextChangeStates` / `result.notices` / `result.errors`。
 async function flushChanges() {
   const base = vscode.workspace.getConfiguration("visionSmashCode.base");
-  const addPaths = [];
-  const removePaths = [];
 
-  for (const [key, state] of Object.entries(changeMap)) {
-    if (!modules[key].filePath) continue;
+  // 描述符只带导入规划需要的字段（key / targetPath / enabled）；省略 kind 表示
+  // "本轮不参与内容生成"，因此不会产生 writes，也不会产生渲染相关的错误。
+  const effects = Object.entries(modules).map(([key, mod]) => ({
+    key,
+    targetPath: mod.filePath,
+    enabled: base.get(key) === true,
+  }));
 
-    const enabled = base.get(key);
+  const result = planRefresh({
+    effects,
+    changeStates: { ...changeMap },
+    currentImports: util.GetImports(),
+    fileExists: planCapabilities.fileExists,
+    toImportUri: planCapabilities.toImportUri,
+  });
 
-    if (state === "reload" && enabled) {
-      removePaths.push(modules[key].filePath);
-      addPaths.push(modules[key].filePath);
-    }
+  // 结算状态表：计划给出的新状态表整表替换（结算后全部回到 none）。
+  Object.assign(changeMap, result.nextChangeStates);
 
-    if (state === "switch") {
-      (enabled ? addPaths : removePaths).push(modules[key].filePath);
-    }
+  // 写入的永远是计划给出的合法字符串数组：文件缺失等失败只出现在 errors 里，
+  // 不会以 undefined 的形式流进全局配置。
+  await util.UpdateImports(result.imports);
 
-    changeMap[key] = "none";
+  for (const notice of result.notices) {
+    vscode.window.showInformationMessage(notice);
   }
-
-  const imports = util.GetImports();
-  const nextImports = await util.AddPaths(
-    util.RemovePaths(imports, removePaths.concat(addPaths)),
-    addPaths,
-  );
-
-  await util.UpdateImports(nextImports);
+  for (const error of result.errors) {
+    vscode.window.showErrorMessage(error.message);
+  }
 
   setTimeout(() => {
     vscode.window.showInformationMessage("效果修改成功！点击确认进行重载");
