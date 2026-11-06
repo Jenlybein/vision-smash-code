@@ -656,14 +656,13 @@
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
-    "test": "vscode-test"
+    "test": "node --test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.80.1",
-    "@types/mocha": "^10.0.10",
+    "@eslint/js": "^9.39.2",
     "@types/node": "22.x",
+    "@types/vscode": "^1.80.1",
     "eslint": "^9.39.2",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "globals": "^16.5.0"
   }
 }

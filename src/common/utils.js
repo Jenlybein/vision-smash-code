@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as vscode from "vscode";
-import * as path from "path";
+
+import { removeByBasename } from "./import-paths.js";
 
 const configKey = "vscode_custom_css";
 const configProperty = "imports";
@@ -47,10 +48,7 @@ export async function AddPaths(imports, addPaths) {
 }
 
 // 移除路径
+// 纯逻辑放在 ./import-paths.js：该模块不 import vscode，因此可以被 node --test 直接加载。
 export function RemovePaths(imports, removePaths) {
-  const removeSet = new Set(
-    removePaths.map((p) => path.basename(p).toLowerCase()),
-  );
-
-  return imports.filter((p) => !removeSet.has(path.basename(p).toLowerCase()));
+  return removeByBasename(imports, removePaths);
 }
