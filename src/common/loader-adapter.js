@@ -138,6 +138,9 @@ export const LOADERS = {
  */
 export const DEFAULT_LOADER = CUSTOM_CSS_LOADER;
 
+// 设置项键名：只在这条错误文案里用到（"切回默认后端"的指引）。
+const LOADER_SETTING = "visionSmashCode.loader";
+
 /**
  * 按设置值挑一个后端，并检测它是否可用。
  *
@@ -162,8 +165,11 @@ export function selectLoader({ vscode, settingValue }) {
       extensionId: loader.extensionId,
       message:
         `所选注入后端「${loader.displayName}」未安装或未启用（${loader.extensionId}）。` +
-        `请在扩展面板安装并启用它，然后重新加载窗口；` +
-        `或把设置 visionSmashCode.loader 切回 ${DEFAULT_LOADER.id}。`,
+        `请在扩展面板安装并启用它，然后重新加载窗口。` +
+        // 选中默认后端时，"切回默认后端"是废话，只给安装指引。
+        (loader === DEFAULT_LOADER
+          ? ""
+          : `也可以把设置 ${LOADER_SETTING} 切回 ${DEFAULT_LOADER.id}。`),
     };
   }
 

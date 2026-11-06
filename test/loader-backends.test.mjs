@@ -184,6 +184,17 @@ test("选择：所选后端未安装时报明确错误并给出安装指引，�
   assert.match(selection.message, /be5invis/);
 });
 
+test("选择：默认后端缺失时只给安装指引，不叫用户「切回」自己已选的后端", () => {
+  const { vscode } = fakeVscode({ imports: [] });
+
+  const selection = selectLoader({ vscode, settingValue: "be5invis" });
+
+  assert.equal(selection.ok, false);
+  assert.match(selection.message, /be5invis\.vscode-custom-css/);
+  assert.match(selection.message, /安装/);
+  assert.doesNotMatch(selection.message, /切回/);
+});
+
 test("选择：后端可用时返回的适配器只碰该后端自己的配置节", () => {
   const { vscode, log } = fakeVscode({
     imports: ["file:///ext/a.css"],
