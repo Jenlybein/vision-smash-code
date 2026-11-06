@@ -1,47 +1,26 @@
 // @ts-check
 import * as vscode from "vscode";
 import * as fs from "fs";
-import * as cursor from "./src/install/cursor-inject.js";
-import * as animation from "./src/install/animation-inject.js";
-import * as gradient from "./src/install/gradient-inject.js";
-import * as mouse from "./src/install/mouse-inject.js";
-import * as word from "./src/install/word-inject.js";
+import {
+  EFFECTS,
+  resolveEffectTargetPath,
+} from "./src/common/effect-descriptors.js";
+import { refreshEffect } from "./src/install/refresh-effect.js";
 import { planRefresh } from "./src/common/refresh-plan.js";
 import * as util from "./src/common/utils.js";
 
-// 模块声明表
-const modules = {
-  cursor: {
-    filePath: "",
-    scope: "visionSmashCode.cursor",
-    baseKey: "cursor",
-    api: cursor,
-  },
-  animations: {
-    filePath: "",
-    scope: "visionSmashCode.animations",
-    baseKey: "animations",
-    api: animation,
-  },
-  gradient: {
-    filePath: "",
-    scope: "visionSmashCode.gradient",
-    baseKey: "gradient",
-    api: gradient,
-  },
-  mouse: {
-    filePath: "",
-    scope: "visionSmashCode.mouse",
-    baseKey: "mouse",
-    api: mouse,
-  },
-  word: {
-    filePath: "",
-    scope: "visionSmashCode.word",
-    baseKey: "word",
-    api: word,
-  },
-};
+// 模块声明表：由效果数据表生成，不再持有各效果的 api 对象。
+// - scope / baseKey：配置监听与状态机的键；
+// - filePath：激活时由该效果的路径解析填入，供 flushChanges 做导入规划。
+const modules = Object.fromEntries(
+  Object.entries(EFFECTS).map(([key, effect]) => [
+    key,
+    { filePath: "", scope: effect.scope, baseKey: effect.baseKey },
+  ]),
+);
+
+// 扩展安装目录：activate 时确定。配置变化的即时调用用它解析目标路径。
+let extensionPath = "";
 
 // 创建状态表
 /** @typedef {"none" | "reload" | "switch"} ChangeState */
@@ -69,7 +48,7 @@ const eventMap = {};
 for (const [key, mod] of Object.entries(modules)) {
   // 模块自身配置变化 → reload
   eventMap[mod.scope] = () => {
-    mod.api.StyleConfigUpdate();
+    refreshEffect(key, extensionPath);
     if (changeMap[key] !== "switch") {
       changeMap[key] = "reload";
     }
@@ -87,8 +66,8 @@ for (const [key, mod] of Object.entries(modules)) {
 // - 判断"哪些路径要被注入"、"下一轮状态是什么"全部在 planRefresh 里（纯函数，可脱离
 //   vscode 测试）。这里只做"读配置 → 调计划 → 写配置 → 展示消息"。
 // - `result.writes` **目前故意不执行**：内容写入的时机与实现保持原样——eventMap 里各效果
-//   的 StyleConfigUpdate 即时调用，渐变由 gradient-inject 自己调 planRefresh 取 writes。
-//   所以下面只使用 `result.imports` / `result.nextChangeStates` / `result.notices` / `result.errors`。
+//   的刷新由 refresh-effect.js 即时调用。所以下面只使用 `result.imports` /
+//   `result.nextChangeStates` / `result.notices` / `result.errors`。
 async function flushChanges() {
   const base = vscode.workspace.getConfiguration("visionSmashCode.base");
 
@@ -131,8 +110,9 @@ async function flushChanges() {
 // 扩展激活
 function activate(context) {
   // 初始化模块路径表
-  for (const mod of Object.values(modules)) {
-    mod.filePath = mod.api.init(context);
+  extensionPath = context.extensionPath;
+  for (const [key, mod] of Object.entries(modules)) {
+    mod.filePath = resolveEffectTargetPath(key, extensionPath);
   }
 
   // 防抖参数

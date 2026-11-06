@@ -69,7 +69,7 @@ test("常量模块是纯的：不 import vscode，也不 import fs", () => {
 
 test("动画注入模块从常量模块取文件名，不再自己写死", () => {
   const source = fs.readFileSync(
-    path.join(srcDir, "install", "animation-inject.js"),
+    path.join(srcDir, "common", "effect-descriptors.js"),
     "utf8",
   );
 

@@ -86,7 +86,7 @@ await writeFile(targetFilePath, nextCode);
 - 正面：给后续重构一个明确的、以 Depth / Locality / Seam 为准绳的起点；避免在没有第二个 Adapter 时引入多余 port。
 - 负面 / 风险：现状的重复逻辑仍然存在；`AddPaths` 的 `undefined` 回传路径未被修复；`StyleConfigUpdate` 的隐式顺序约束仍可能误导新调用者。
 
-> **后续更新（2026-11-07）**：上述风险已随实施发生变化——`AddPaths` 的 `undefined` 回传已被修复并有回归测试（#12）；`RemovePaths` 未按本文建议「作为内部接缝保留」，而是被删除（详见实施记录中的偏离说明）。`StyleConfigUpdate` 的隐式顺序约束**仍未消除**。
+> **后续更新（2026-11-07）**：上述风险已随实施发生变化——`AddPaths` 的 `undefined` 回传已被修复并有回归测试（#12）；`RemovePaths` 未按本文建议「作为内部接缝保留」，而是被删除（详见实施记录中的偏离说明）。`StyleConfigUpdate` 的隐式顺序约束已随 #16 消除（执行层改为显式入参的 `refreshEffect`）。
 - 若未来实施：需同时补齐 Interface 文档（顺序约束、错误模式、格式不变量），并把测试迁移到新接缝。
 
 ## 备选方案（未采纳）
@@ -103,6 +103,8 @@ await writeFile(targetFilePath, nextCode);
 
 五个 `*-inject.js` 中重复的「生成配置块 → 转义标记 → 整块替换或头部插入」「读 CSS 片段并拼接」「解析时长占位」逻辑，收敛进 `src/common/refresh-plan.js` 的纯函数 `planRefresh`。
 
+#16 起这五个模块本身也已删除：被抄了五遍的薄执行层（读配置 → 构造描述符 → 调 `planRefresh` → 写盘 → 展示错误）收敛成 `src/install/refresh-effect.js` 一份，每个效果只在 `src/common/effect-descriptors.js` 的数据表里提供作用域、目标路径解析、配置快照与描述符载荷。
+
 接缝形状（与本文第 ③ 项预测的「配置值 + 变更意图 → 文件内容 / 路径集合」一致）：
 
 ```
@@ -117,7 +119,7 @@ planRefresh({ effects, changeStates, currentImports, readText, fileExists, toImp
 ### ② 接口上的纯负担 → 已移除
 
 - `GetPath()` 从 5 个模块删除（#8），全仓库无残留引用。
-- `StyleConfigUpdate()` 的**隐式 `init()` 顺序约束尚未消除**——本文的批评依然成立，留待后续处理。
+- `StyleConfigUpdate()` 的隐式 `init()` 顺序约束**已随 #16 消除**：执行层改为 `refreshEffect(key, extensionPath)`，目标路径与配置快照都是显式入参，不再有"必须先调用 init"的约定，也不再依赖模块级可变全局状态。
 
 ### ③ 混合副作用与未声明的错误模式 → 已修复
 
@@ -135,6 +137,5 @@ planRefresh({ effects, changeStates, currentImports, readText, fileExists, toImp
 
 ### 仍未达成
 
-- `StyleConfigUpdate()` 的隐式顺序约束（同 ②）。
 - `extension.js` 里内容写入仍在 `eventMap` 中即时触发，与 `flushChanges` 的导入结算分离；两者是否合并，需要一个显式的时序决策（见 #14 的注意事项）。
 
