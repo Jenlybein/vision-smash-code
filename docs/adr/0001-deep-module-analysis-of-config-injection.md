@@ -1,10 +1,10 @@
 # ADR-0001：配置注入模块的深度分析（深模块设计评估）
 
-- **状态**：提议（Proposed）— 仅为分析记录，**不改代码**；不表示已决定实施。
+- **状态**：**已实施（部分）** — 原为「提议（Proposed）」。分析结论已作为 Issue #5（父规格）的设计依据落地实施，实施进度见文末「实施记录」。本文正文保留当时的分析原貌，不改写历史判断。
 - **日期**：2026-11-07
 - **范围**：`extension.js`、`src/install/*-inject.js`、`src/common/utils.js`
-- **决策者**：待定
-- **相关文档**：`docs/agents/domain.md`（本仓库为 single-context，ADR 放 `docs/adr/`）
+- **决策者**：维护者
+- **相关文档**：`docs/agents/domain.md`（本仓库为 single-context，ADR 放 `docs/adr/`）、`docs/adr/0002-engines-vscode-and-esm-extension-entry.md`、Issue #5
 
 ## 背景
 
@@ -79,10 +79,14 @@ await writeFile(targetFilePath, nextCode);
 
 **暂不实施。** 本 ADR 仅记录分析结果与加深方向，供后续 `/domain-modeling`、Design It Twice 或重构任务作为输入。实施与否、以及最终 Interface 形状，需另行决定并更新本文件状态。
 
+> **后续更新（2026-11-07）**：维护者决定实施，拆解为 Issue #5 的 12 张子工单（#6–#17），本 ADR 的分析结论已逐项落地。逐条对应关系与偏离说明见文末「实施记录」。
+
 ## 后果
 
 - 正面：给后续重构一个明确的、以 Depth / Locality / Seam 为准绳的起点；避免在没有第二个 Adapter 时引入多余 port。
 - 负面 / 风险：现状的重复逻辑仍然存在；`AddPaths` 的 `undefined` 回传路径未被修复；`StyleConfigUpdate` 的隐式顺序约束仍可能误导新调用者。
+
+> **后续更新（2026-11-07）**：上述风险已随实施发生变化——`AddPaths` 的 `undefined` 回传已被修复并有回归测试（#12）；`RemovePaths` 未按本文建议「作为内部接缝保留」，而是被删除（详见实施记录中的偏离说明）。`StyleConfigUpdate` 的隐式顺序约束**仍未消除**。
 - 若未来实施：需同时补齐 Interface 文档（顺序约束、错误模式、格式不变量），并把测试迁移到新接缝。
 
 ## 备选方案（未采纳）
@@ -90,3 +94,47 @@ await writeFile(targetFilePath, nextCode);
 - **为每个特效定义 port + 多套 adapter**：违反「两个 adapter 才构成真实接缝」，当前只有一种 I/O 行为，属于多余间接层。
 - **按特效拆分 `extension.js` 的状态机**：会破坏现有声明表带来的 Leverage 与 Locality，不采纳。
 - **把深度理解为「实现行数 / 接口行数」之比**（Ousterhout 式）：本技能明确拒绝，因为会奖励给实现灌水。
+
+## 实施记录（2026-11-07）
+
+本文的四项加深机会对应的落地情况。**这份记录只陈述事实，不重写正文的历史判断。**
+
+### ① 重复的浅模块群 → 已收敛
+
+五个 `*-inject.js` 中重复的「生成配置块 → 转义标记 → 整块替换或头部插入」「读 CSS 片段并拼接」「解析时长占位」逻辑，收敛进 `src/common/refresh-plan.js` 的纯函数 `planRefresh`。
+
+接缝形状（与本文第 ③ 项预测的「配置值 + 变更意图 → 文件内容 / 路径集合」一致）：
+
+```
+planRefresh({ effects, changeStates, currentImports, readText, fileExists, toImportUri })
+  → { writes, imports, nextChangeStates, notices, errors }
+```
+
+**两个 Adapter 使其成为真实接缝**：生产环境注入基于 `fs`/`vscode` 的实现，测试注入内存实现——正是本文引用的「两个 adapter 才构成真实接缝」判据。
+
+按本文建议，**未**为每个特效引入 port：特效之间变化的是数据而非行为，统一走描述符 + `kind` 分派（`css-concat` / `marker-block`）。
+
+### ② 接口上的纯负担 → 已移除
+
+- `GetPath()` 从 5 个模块删除（#8），全仓库无残留引用。
+- `StyleConfigUpdate()` 的**隐式 `init()` 顺序约束尚未消除**——本文的批评依然成立，留待后续处理。
+
+### ③ 混合副作用与未声明的错误模式 → 已修复
+
+- `AddPaths` 失败时 `return undefined`、且该值会被直接写入全局配置的缺陷已修复。现在规划阶段对每条待新增路径做「能力存在 → 存在性 → URI 转换」三段校验，任一失败只记 `errors`，`imports` 永远只含非空字符串。有独立回归测试。
+- 失败语义明确为：**任一资产缺失 → 该效果整条不产出 `writes`**（避免写出残缺样式表），并一次性列出所有缺失项。
+
+### ④ 可纯函数化的状态机 → 已收敛
+
+`changeMap` 的 `none / reload / switch` 结算逻辑搬进 `planRefresh`，以 `nextChangeStates` 整表返回（全部归 `none`），调用方整表替换。
+
+### 偏离本文建议之处
+
+1. **`RemovePaths` 被删除，而非「作为内部接缝保留」。** 它的唯一调用点已改由 `planRefresh` → `removeByBasename` 承担；删除后它已无任何调用者，留着就变成本文自己批评过的「接口上的虚假承诺」（与 `GetPath()` 同类）。基元函数 `removeByBasename` 保留在 `src/common/import-paths.js` 中作为实现细节。
+2. **`updateDuration` 未单独保留为内部接缝**，其语义并入窗口动效的渲染实现（#14）。
+
+### 仍未达成
+
+- `StyleConfigUpdate()` 的隐式顺序约束（同 ②）。
+- `extension.js` 里内容写入仍在 `eventMap` 中即时触发，与 `flushChanges` 的导入结算分离；两者是否合并，需要一个显式的时序决策（见 #14 的注意事项）。
+
