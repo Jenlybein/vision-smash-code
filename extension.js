@@ -40,16 +40,17 @@ const changeMap = Object.fromEntries(
 );
 
 // 注入给纯函数接缝的 I/O 能力：planRefresh 自己不 import fs / vscode。
-const planCapabilities = {
-  // 存在性判断必须是同步的（纯函数是同步的），异常一律按"不存在"处理。
-  fileExists: (filePath) => {
-    try {
-      return fs.existsSync(filePath);
-    } catch {
-      return false;
-    }
-  },
-};
+//
+// 存在性判断必须是同步的（纯函数是同步的），异常一律按"不存在"处理。
+// （原先是 `planCapabilities.fileExists` 这样的单字段包装对象，只此一处使用、没有第二个
+// 成员，属于多余的间接层，收尾评审 F10 内联掉。）
+function fileExists(filePath) {
+  try {
+    return fs.existsSync(filePath);
+  } catch {
+    return false;
+  }
+}
 
 // 按设置值选后端并检测可用性。返回 null = 所选后端不可用（已提示安装）。
 function applyLoaderSetting() {
@@ -123,7 +124,7 @@ async function flushChanges() {
     effects,
     changeStates: { ...changeMap },
     currentImports: activeLoader.readImports(),
-    fileExists: planCapabilities.fileExists,
+    fileExists,
     // 本地路径 → 注入条目。计划的契约要求这里返回**字符串**（稳定 id），条目形态的差异
     // 由适配层在写回时吸收。绑定本轮捕获的适配器，避免结算途中切换后端导致前后不一致。
     toImportUri: (filePath) => activeLoader.toEntry(filePath),
