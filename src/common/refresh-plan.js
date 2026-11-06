@@ -81,9 +81,17 @@ import { basenameKey, removeByBasename } from "./import-paths.js";
  *   片段选取语义（与重构前 `gradient-inject.js` 逐字节等价）：
  *   `settings[segment.setting] !== false` —— 未设置（`undefined`）视为开启，
  *   只有显式 `false` 才排除该片段。片段内容直接首尾相接，不插入任何分隔符。
- * - `kind: "marker-block"`（尚未迁移）：预期在 `targetPath` 中定位起止标记并整块替换，
- *   载荷由迁移该效果的工单决定。本模块遇到它时**不写盘**，只返回一条"尚不支持"的错误——
- *   宁可显式失败，也不要静默跳过或写半成品逻辑。
+ * - `kind: "marker-block"`：在 `targetPath` 里定位起止标记并整块替换。
+ *   ```
+ *   { markers: { start, end }, variableName, config }
+ *   ```
+ *   - 生成形状：`<start>\nconst <variableName> = <config 的两空格缩进 JSON>;\n<end>`。
+ *   - `markers.start` / `markers.end` 按**字面量**匹配（内部转义正则元字符）；标记文本
+ *     自带注释定界符，由调用方决定。
+ *   - 标记存在 → 整块替换；不存在 → 整块插入到文件头，后跟两个换行再接原文。
+ *   - 只替换**第一处**标记块：文件里出现两处时第二处原样保留（与迁移前的非全局正则一致）。
+ *   - 目标文件缺失（`readText` 返回 `null`）→ `errors` 一条、不写盘、不抛异常。
+ *   - 描述符缺字段 → `errors` 一条，且不读取目标文件。
  * - `kind` 省略（`undefined` / `null`）：不产生 `writes`、不报错。这是执行层的显式用法：
  *   `flushChanges` 只做导入规划，内容写入仍归各效果自己的 `StyleConfigUpdate`。
  *
@@ -251,7 +259,7 @@ function planImports({
 /**
  * 按 `kind` 分派渲染。新增渲染方式 = 在这里加一个分支，调用方与 Interface 不变。
  *
- * `marker-block` 尚未迁移，因此落入 default：显式报错而不是静默跳过，
+ * 未识别的 `kind` 落入 default：显式报错而不是静默跳过，
  * 避免后续迁移者误以为它已经工作。
  *
  * @returns {{ ok: true, content: string, errors: [] } |
@@ -261,6 +269,8 @@ function renderEffect(effect, readText) {
   switch (effect.kind) {
     case "css-concat":
       return renderCssConcat(effect, readText);
+    case "marker-block":
+      return renderMarkerBlock(effect, readText);
     default:
       return {
         ok: false,
@@ -312,4 +322,85 @@ function renderCssConcat(effect, readText) {
   if (errors.length > 0) return { ok: false, errors };
 
   return { ok: true, content, errors };
+}
+
+/**
+ * 标记块式渲染：在目标文件里定位起止标记，把两者之间的内容整块替换；
+ * 找不到标记时把配置块插入到文件头。
+ *
+ * 载荷（描述符上除 markers 外的字段）：
+ * - `variableName`：生成 `const <variableName> = ...;` 的变量名。
+ * - `config`：任意 JSON 可序列化的配置快照，按两空格缩进渲染。
+ * - `markers.start` / `markers.end`：**逐字节匹配**的标记文本（含注释定界符）。
+ *
+ * @returns {{ ok: true, content: string, errors: [] } |
+ *           { ok: false, errors: Array<{ path?: string, message: string }> }}
+ */
+function renderMarkerBlock(effect, readText) {
+  const { start, end } = effect.markers ?? {};
+  const { variableName } = effect;
+
+  // 描述符是执行层拼出来的纯数据，字段缺失时不能靠 TypeError 冒泡（接缝不抛异常）。
+  if (
+    typeof start !== "string" ||
+    start.length === 0 ||
+    typeof end !== "string" ||
+    end.length === 0 ||
+    typeof variableName !== "string" ||
+    variableName.length === 0
+  ) {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: effect.targetPath,
+          message: `marker-block 描述符不完整（需要 markers.start、markers.end、variableName）：效果 ${effect.key}`,
+        },
+      ],
+    };
+  }
+
+  const original = readText(effect.targetPath);
+
+  // 目标文件缺失（readText 返回 null / 非字符串）：不抛异常，记一条 errors 并让整条效果
+  // 失败。这是与迁移前的唯一行为差异——旧实现 throw `没找到目标文件: <path>`，
+  // 由 async 调用方的未处理拒绝吞掉；接缝统一改走 errors 通道。
+  if (typeof original !== "string") {
+    return {
+      ok: false,
+      errors: [
+        {
+          path: effect.targetPath,
+          message: `无法读取目标文件，路径: ${effect.targetPath}`,
+        },
+      ],
+    };
+  }
+
+  const configText = JSON.stringify(effect.config, null, 2);
+  const block = `${start}\nconst ${variableName} = ${configText};\n${end}`;
+
+  // 标记是字面量文本（`/* __AUTO_CONFIG_START__ */` 里含正则元字符），必须整体转义。
+  // 非全局 + 惰性匹配 = 只替换**第一处**标记块：异常文件里出现两处时，第二处原样保留，
+  // 与迁移前 `String.replace(非全局正则, ...)` 的行为一致。
+  const markerRegex = new RegExp(
+    `${escapeRegExp(start)}[\\s\\S]*?${escapeRegExp(end)}`,
+    "m",
+  );
+
+  if (!markerRegex.test(original)) {
+    return { ok: true, content: `${block}\n\n${original}`, errors: [] };
+  }
+
+  // 用函数式替换：配置值里若出现 `$&`、`$1` 之类的字符序列，不会被当成替换模式解释。
+  return {
+    ok: true,
+    content: original.replace(markerRegex, () => block),
+    errors: [],
+  };
+}
+
+/** 正则转义：把一段文本变成只按字面量匹配的正则片段。 */
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
