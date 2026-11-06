@@ -35,7 +35,7 @@
   ],
   "license": "GPL-3.0-only",
   "exports": {
-    ".": "./extension.js"
+    ".": "./dist/extension.cjs"
   },
   "engines": {
     "vscode": "^1.100.0"
@@ -43,7 +43,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [
       {
@@ -654,6 +654,10 @@
     ]
   },
   "scripts": {
+    "compile": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "package": "node build.mjs --production",
+    "vscode:prepublish": "npm run package",
     "lint": "eslint .",
     "pretest": "npm run lint",
     "test": "node --test"
@@ -662,6 +666,7 @@
     "@eslint/js": "^9.39.2",
     "@types/node": "22.x",
     "@types/vscode": "^1.80.1",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.2",
     "globals": "^16.5.0"
   }
