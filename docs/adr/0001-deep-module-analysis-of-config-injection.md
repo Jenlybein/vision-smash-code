@@ -1,0 +1,92 @@
+# ADR-0001：配置注入模块的深度分析（深模块设计评估）
+
+- **状态**：提议（Proposed）— 仅为分析记录，**不改代码**；不表示已决定实施。
+- **日期**：2026-11-07
+- **范围**：`extension.js`、`src/install/*-inject.js`、`src/common/utils.js`
+- **决策者**：待定
+- **相关文档**：`docs/agents/domain.md`（本仓库为 single-context，ADR 放 `docs/adr/`）
+
+## 背景
+
+本扩展通过 VS Code 配置驱动 5 类视觉效果（光标拖尾、窗口动效、渐变主题、鼠标尾迹、文字爆炸）。配置变更后，`extension.js` 统一结算，把生成的 JS/CSS 文件路径写入 `vscode_custom_css.imports`，再触发 `extension.updateCustomCSS` 重载。配置值本身由 5 个 `*-inject.js` 模块写进目标文件的 `__AUTO_CONFIG_START__/__AUTO_CONFIG_END__` 标记块，或拼接 CSS 片段。
+
+本次评估使用 `/codebase-design` 的词汇表：**Module / Interface / Implementation / Depth / Seam / Adapter / Leverage / Locality**，并遵循 DEEPENING.md 的依赖分类与接缝纪律。
+
+## 术语约定
+
+本 ADR 中：
+
+- **Interface** 指调用者为正确使用所必须知道的一切（类型签名 + 不变量 + 顺序约束 + 错误模式 + 必需配置 + 性能特征），不只是函数签名。
+- **Depth** 是 Interface 上的杠杆，不是实现行数与接口行数之比。
+- **Seam** 指 Interface 所在之处；本 ADR 不用「边界」一词。
+- **Adapter** 指在 Seam 上满足 Interface 的具体实现，描述角色而非实质。
+
+## 现状评估
+
+### 已经具备深度的部分
+
+`extension.js` 的模块声明表（`modules` + `eventMap` + `changeMap` + 防抖 `flushChanges`）是全仓库最接近深模块的部分：新增一个特效只需增加一条 `{scope, baseKey, api}` 声明，配置监听、`none/reload/switch` 状态机、路径增删与重载结算全部复用。**结论：保留，不要拆分。** 一份实现供养 5 个特效（Leverage），配置语义变化只集中在这一处（Locality）。
+
+### 可加深的机会（按杠杆排序）
+
+#### ① 5 个 `*-inject.js` 是重复的浅模块群
+
+`cursor-inject.js`、`mouse-inject.js`、`word-inject.js` 几乎逐行同构：相同的标记常量、模块级 `targetFilePath`、拼路径的 `init(context)`、「读文件 → 生成配置块 → 正则转义 → 替换或头部插入 → 写回」流程、以及 `GetPath()`。`gradient-inject.js` 与 `animation-inject.js` 又各自复制了 `getCSSFile`。真正值钱的复杂逻辑（转义、幂等替换、首次插入、两种配置块格式差异）被复制了多份。
+
+- **删除测试**：删掉其中一个，复杂度不消失，只在别处继续存在 → 它们没有在挣饭吃，属于透传/重复，应合并。
+- **加深形状**：把「生成配置块」与「替换/插入标记块」做成两个**纯函数**（无 fs、无 vscode），I/O 留在薄外层。Interface 由「3 个导出方法 + 隐含顺序约束」收缩到 1~2 个纯函数；实现藏起转义、幂等与格式差异。5 个特效只提供数据（变量名、配置对象、目标路径）。
+- **接缝纪律**：变化的是**数据**而非行为，按「一个 Adapter = 假设的接缝；两个 Adapter = 真实的接缝」，**不要**给每个特效引入 port；数据驱动的声明表即可。
+
+#### ② Interface 上的纯负担与隐藏的顺序约束
+
+- `GetPath()` 在 5 个文件中导出，但全仓库无调用者（调用方使用 `init()` 的返回值）→ 可删。
+- `StyleConfigUpdate()` 隐含「必须先调用 `init()`」的**顺序约束**，且依赖模块级可变全局 `targetFilePath`。按 Interface 的定义，这是未写进接口的 ordering constraint，测试时也无法隔离。可改为 `init` 返回捕获了路径的对象，或按「接受依赖，不创建依赖」让更新函数接收路径参数。
+
+#### ③ `utils.js` 混合副作用，错误模式未进入 Interface
+
+`AddPaths` 同时做 `fileExists` I/O、弹出错误提示、URI 转换；失败时 `return undefined`（`src/common/utils.js:39`），而 `extension.js:92` 直接把结果传给 `UpdateImports`，未做检查 —— `undefined` 可能被写入全局配置。
+
+建议把「算出下一份 imports 列表」抽成纯函数（如 `planImports(current, {add, remove})` → 返回新数组），配置读写、文件检查、UI 提示挪到外层 adapter。`RemovePaths` 与 `animation-inject.js` 的 `updateDuration` 本身已是纯函数，形状良好，可作为**内部接缝**保留。`RemovePaths` 靠 `path.basename()` 在 URI 字符串与本地路径之间匹配，是一个未文档化的格式不变量，较脆弱，应在 Interface 文档中写明或消除。
+
+#### ④ `flushChanges` 的状态机值得纯函数化
+
+`planChanges(changeMap, baseConfig, modulePaths)` → `{addPaths, removePaths, nextChangeMap}`，无 I/O、可直接测试；提示消息与 `extension.updateCustomCSS` 命令属于真外部依赖，留在最外层。
+
+### 依赖分类与 Seam 位置
+
+| 类别 | 本仓库对应 | 处理方式 |
+| --- | --- | --- |
+| 进程内纯计算 | 配置块生成、标记替换、`RemovePaths`、`updateDuration`、`planChanges` | 永远可加深，直接在新 Interface 上测，无需 adapter |
+| 本地可替换 | Node `fs`、VS Code 配置对象 | 有内存/临时目录 stand-in，可加深；接缝是**内部**的，不暴露到外部 Interface |
+| 真外部 | `showInformationMessage`、`extension.updateCustomCSS`（第三方扩展命令） | 薄 adapter 放在最外层，不进深模块 Interface |
+
+**外部接缝应放在「配置值 + 变更意图 → 要写入的文件内容 / 要注入的路径集合」这一层**：纯计算、返回结果；所有 vscode / fs / UI 都在这条缝之外。示意（仅用于把约束具体化，不是最终提案）：
+
+```js
+// 纯函数：Interface 的全部
+const nextCode = replaceOrInsertBlock(originalCode, renderConfigBlock("mouseConfig", config));
+// 副作用留在外面
+await writeFile(targetFilePath, nextCode);
+```
+
+### 测试策略（replace, don't layer）
+
+- 在新的深模块 Interface 上写测试，断言可观察结果（生成的文件内容、路径集合），不测内部状态。
+- 旧的、针对重复浅模块的单元测试在 Interface 测试建立后删除，不叠加。
+- 测试应能经受内部重构：若实现一改测试就得改，说明测到了 Interface 后面。
+
+## 决策
+
+**暂不实施。** 本 ADR 仅记录分析结果与加深方向，供后续 `/domain-modeling`、Design It Twice 或重构任务作为输入。实施与否、以及最终 Interface 形状，需另行决定并更新本文件状态。
+
+## 后果
+
+- 正面：给后续重构一个明确的、以 Depth / Locality / Seam 为准绳的起点；避免在没有第二个 Adapter 时引入多余 port。
+- 负面 / 风险：现状的重复逻辑仍然存在；`AddPaths` 的 `undefined` 回传路径未被修复；`StyleConfigUpdate` 的隐式顺序约束仍可能误导新调用者。
+- 若未来实施：需同时补齐 Interface 文档（顺序约束、错误模式、格式不变量），并把测试迁移到新接缝。
+
+## 备选方案（未采纳）
+
+- **为每个特效定义 port + 多套 adapter**：违反「两个 adapter 才构成真实接缝」，当前只有一种 I/O 行为，属于多余间接层。
+- **按特效拆分 `extension.js` 的状态机**：会破坏现有声明表带来的 Leverage 与 Locality，不采纳。
+- **把深度理解为「实现行数 / 接口行数」之比**（Ousterhout 式）：本技能明确拒绝，因为会奖励给实现灌水。
