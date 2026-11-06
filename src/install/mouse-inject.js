@@ -112,7 +112,3 @@ export async function StyleConfigUpdate() {
   fs.writeFileSync(targetFilePath, updatedCode, "utf-8");
 }
 
-// 获取加载文件路径
-export function GetPath() {
-  return targetFilePath;
-}

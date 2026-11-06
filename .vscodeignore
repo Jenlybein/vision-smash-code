@@ -1,6 +1,9 @@
+# --- 开发环境与工具链 ---
 .vscode/**
 .vscode-test/**
 test/**
+**/src/test/**
+**/*.test.js
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
@@ -8,3 +11,15 @@ vsc-extension-quickstart.md
 **/*.map
 **/eslint.config.mjs
 **/.vscode-test.*
+
+# --- 开发与文档资源 ---
+# README 与 README-zh 中的截图均通过 raw.githubusercontent.com 绝对地址引用，
+# 因此截图无需随扩展分发。扩展图标是 manifest 必需资产，必须保留。
+images/**
+!images/icon.png
+docs/**
+AGENTS.md
+package-lock.json
+
+# --- 模板残留 ---
+Hello, World.txt

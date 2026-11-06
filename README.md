@@ -1,7 +1,7 @@
 
 # Vision Smash Code 🎨
 
-[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.80.1-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
+[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.100.0-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
 
 A visual enhancement extension for VS Code that injects life into your coding experience! Provides mouse/cursor trails, typing effects, smooth window animations, and beautiful gradient themes.
 

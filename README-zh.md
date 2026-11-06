@@ -1,6 +1,6 @@
-﻿# Vision Smash Code 🎨
+# Vision Smash Code 🎨
 
-[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.80.1-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
+[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.100.0-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
 
 一款为 VS Code 打造的视觉增强扩展，为你的编码体验注入活力！提供鼠标拖尾特效、打字特效、光标拖尾特效、窗口平滑动画和精美的渐变主题效果。
 
