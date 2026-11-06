@@ -127,7 +127,9 @@ import { basenameKey, removeByBasename } from "./import-paths.js";
  *   - 缺少 `readText` 能力 → `errors` 一条、不写盘、不抛异常（与 `css-concat` 同一守卫）。
  *   - 描述符缺字段 → `errors` 一条，且不读取目标文件。
  * - `kind` 省略（`undefined` / `null`）：不产生 `writes`、不报错。这是执行层的显式用法：
- *   `flushChanges` 只做导入规划，内容写入仍归各效果自己的 `StyleConfigUpdate`。
+ *   `flushChanges` 只做导入规划，内容写入另由执行层负责——`src/install/refresh-effect.js`
+ *   的 `refreshEffect` 用自己的描述符（带完整 `kind`）再调一次本函数，然后执行 `writes`。
+ *   （重构前这一步归各效果的 `StyleConfigUpdate()`；那批注入模块已在 #16 删除。）
  *
  * @param {{
  *   effects?: Array<object>,
@@ -322,7 +324,7 @@ function renderEffect(effect, readText) {
  * 拼接式渲染：按选取规则选出若干 CSS 片段，首尾相接。
  *
  * 片段选取语义由 `segment.rule` 决定（缺省 `"enabled"`，与重构前 `gradient-inject.js`
- * 的 `settings[key] !== false` 逐字节等价）；`segment.path` 里的 `{value}` 会被该段
+ * 的 `settings[key] !== false` 逐字节等价；该文件已在 #16 删除）；`segment.path` 里的 `{value}` 会被该段
  * `setting` 的取值替换，用于"枚举值决定读哪个文件"的效果（如窗口动效）。
  * 片段之间不插入任何分隔符。
  *

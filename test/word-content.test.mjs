@@ -11,7 +11,8 @@ import { renderWordConfigBody } from "../src/common/marker-bodies.js";
 // 因此本文件只在"资产文件对照"那一条测试里真正读盘。
 const TARGET = "C:\\ext\\src\\word-exploder\\word-exploder.js";
 
-// 与 src/install/word-inject.js 的标记常量逐字节一致（含注释定界符）。
+// 与 src/common/effect-descriptors.js 的 MARKER_BLOCK 逐字节一致（含注释定界符）；
+// 迁移前这组常量写在 `src/install/word-inject.js` 里，该文件已在 #16 删除。
 const START = "/* __AUTO_CONFIG_START__ */";
 const END = "/* __AUTO_CONFIG_END__ */";
 

@@ -7,7 +7,8 @@ import { planRefresh } from "../src/common/refresh-plan.js";
 // 保证测试完全不碰文件系统；若实现绕过 readText 去读盘，测试会失败。
 const TARGET = "C:\\ext\\src\\neovide-cursor\\neovide-cursor.js";
 
-// 与 src/install/cursor-inject.js 中的标记常量逐字节一致（含注释定界符）。
+// 与 src/common/effect-descriptors.js 的 MARKER_BLOCK 逐字节一致（含注释定界符）；
+// 迁移前这组常量写在 `src/install/cursor-inject.js` 里，该文件已在 #16 删除。
 const START = "/* __AUTO_CONFIG_START__ */";
 const END = "/* __AUTO_CONFIG_END__ */";
 
@@ -29,7 +30,8 @@ function memoryReadText(files) {
   return { readText, calls };
 }
 
-// 描述符：执行层（cursor-inject.js）把配置快照与目标路径摊平成这个纯数据形状。
+// 描述符：执行层（`src/common/effect-descriptors.js` 的 `cursor.describe`）把配置快照与
+// 目标路径摊平成这个纯数据形状（迁移前由已删除的 `cursor-inject.js` 负责）。
 function cursorEffect({ config, ...overrides } = {}) {
   return {
     key: "cursor",
@@ -195,8 +197,9 @@ function countOccurrences(haystack, needle) {
   return haystack.split(needle).length - 1;
 }
 
-// 光标拖尾的完整配置快照：字段与顺序与 src/install/cursor-inject.js 的
+// 光标拖尾的完整配置快照：字段与顺序与迁移前 `src/install/cursor-inject.js` 的
 // getCursorConfig() 一致（20 个设置项 + 3 个由设置项推导出的 transition 语句）。
+// 该注入模块已在 #16 删除，同样的快照现在由 `effect-descriptors.js` 的 cursor.readSettings 提供。
 const FULL_CONFIG = {
   tailColor: "#FFC0CB",
   tailOpacity: 1,

@@ -105,7 +105,8 @@ test("平滑模式：布局面板仍保留过渡，功能没有被关掉", () =>
 });
 
 test("平滑模式：时长占位保持单行，仍能被 updateDuration 的替换规则命中", () => {
-  // 与 src/install/animation-inject.js 中 updateDuration 用的是同一条正则。
+  // 与 `src/common/refresh-plan.js` 的 `DURATION_PLACEHOLDER` 用的是同一条正则
+  // （重构前是已删除的 `src/install/animation-inject.js` 里的 `updateDuration`）。
   // 那一条正则不含 s 标志，占位一旦被换行拆开就永远替换不掉。
   const replaced = css.replace(
     /\/\*<Duration>\*\/.*\/\*<\/Duration>\*\//g,

@@ -15,8 +15,10 @@
   并残留在屏幕上。所以浮动层容器本身、以及它们内部带内联几何样式的元素
   （滚动容器、内容面等）都必须排除。
 
-  注意：文件顶部 :root 里的时长占位由 animation-inject.js 在运行时按用户配置
-  整体替换，占位必须保持在同一行内。
+  注意：文件顶部 :root 里的时长占位由 src/common/refresh-plan.js 的时长占位替换
+  （animation-segments.js 里标了 duration: true 的片段）在运行时按用户配置整体替换，
+  占位必须保持在同一行内。重构前这一步由 src/install/animation-inject.js 的
+  updateDuration 完成，该文件已在 #16 删除。
 */
 
 /* 布局面板：真正在拖拽 / 分屏时改变几何尺寸的容器 */

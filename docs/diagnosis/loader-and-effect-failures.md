@@ -6,6 +6,10 @@
 - **范围**：只做静态分析与上游取证。**未修改任何产品代码、测试或 `package.json`。**
 - **诚实声明**：本次调查**没有**可用的真实 VS Code 实例去复现，也**没有**安装扩展实测。凡未实际执行的验证一律标为「未确证」，文末给出可执行的人工验证步骤。
 - **行号时点**：文中源码行号以**合并 `refactor/injection-seam`（含 #13「marker-block 渲染」迁移）之后**的代码为准。上游（VS Code / 加载器）的行号以 2026-11-07 抓取到的主干源码为准，会随上游变动；引用时请以内容为准，不要只信行号。
+  **注意**：文中多处引用的 `src/install/{cursor,mouse,word,gradient,animation}-inject.js` 与
+  `src/common/utils.js` **已在 #16 的重构中删除**（收敛为 `src/install/refresh-effect.js` +
+  `src/common/effect-descriptors.js` + `src/common/refresh-plan.js`）。这些引用及其行号**仅指当时状态**，
+  保留原样是为了不改写诊断记录本身；现在的对应关系见文末「代码位置对照」。
 
 ---
 
@@ -320,3 +324,20 @@ PR #281（提交 `d35c9ac6`，2026-05-19，标题 `fix: inject CSS into <head> f
 - 优先级 2：`top-active-tab.css` 选择器退化到稳定锚点（`.tab.active` + `:where()` 容错），并保留 `.tab-border-top` 变量覆盖；**需要现场 Elements 证据**。
 - 优先级 3：`gradient.horizontal` 要么修好，要么在 README 里给出「默认关闭 + 需要手动开启」的明确说明（当前只有 manifest 描述里的 `(buggy)`）。
 - 回归手段：本仓库目前没有能覆盖渲染进程的自动化测试，因此这两项都必须在工单里写明**人工验证步骤**（可直接引用本文 V2/V6），不得声称已验证。
+
+---
+
+## 代码位置对照（#16 重构之后，供阅读历史引用时换算）
+
+本文正文引用的是**当时**的模块与行号。`*-inject.js` 已在 #16 删除，对应关系如下
+（**只在此处维护最新位置，正文不动**）。
+
+| 正文里的旧位置 | 现在的位置 |
+| --- | --- |
+| `cursor-inject.js` / `mouse-inject.js` / `word-inject.js` 的配置块生成与标记替换 | `src/common/refresh-plan.js` 的 `renderMarkerBlock` + `src/common/marker-bodies.js`（鼠标/文字的正文排版） |
+| 五个 `*-inject.js` 共用的执行流程（读配置 → 调更新 → 写盘 → 提示错误） | `src/install/refresh-effect.js` 的 `refreshEffect` |
+| 各 `getCursorConfig` / `getWordConfig` / `getMouseConfig` 与配置作用域、目标路径解析 | `src/common/effect-descriptors.js` 的 `EFFECTS` 数据表 |
+| `gradient-inject.js` 的 CSS 片段循环 | `effect-descriptors.js` 的 `GRADIENT_CSS_FILES` + `refresh-plan.js` 的 `renderCssConcat` |
+| `animation-inject.js` 的片段顺序与 `updateDuration` | `src/common/animation-segments.js` 的 `buildAnimationSegments` + `refresh-plan.js` 的 `replaceDurationPlaceholder` |
+| `src/common/utils.js` 的 `AddPaths` / `RemovePaths`（`undefined` 污染路径） | `refresh-plan.js` 的 `planImports` + `src/common/import-paths.js` 的 `removeByBasename` |
+| `extension.js` 的 `flushChanges`（#12 之前的形态） | 仍是 `extension.js` 的 `flushChanges`，但状态机与导入规划已移入 `planRefresh` |
