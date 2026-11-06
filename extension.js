@@ -7,7 +7,11 @@ import {
 } from "./src/common/effect-descriptors.js";
 import { refreshEffect } from "./src/install/refresh-effect.js";
 import { planRefresh } from "./src/common/refresh-plan.js";
-import * as util from "./src/common/utils.js";
+import { createLoaderAdapter } from "./src/common/loader-adapter.js";
+
+// 底层加载器适配层：配置键、重载命令、路径转条目三件事都收在它里面。
+// 本文件因此不出现任何加载器字面量——换加载器只改 loader-adapter.js。
+const loader = createLoaderAdapter({ vscode });
 
 // 模块声明表：由效果数据表生成，不再持有各效果的 api 对象。
 // - scope / baseKey：配置监听与状态机的键；
@@ -39,8 +43,8 @@ const planCapabilities = {
       return false;
     }
   },
-  // 本地路径 → Custom CSS & JS Loader 能识别的 URI 形式。
-  toImportUri: (filePath) => vscode.Uri.file(filePath).toString(),
+  // 本地路径 → 注入条目：条目形态由适配层决定（默认后端是 URI 字符串）。
+  toImportUri: loader.toEntry,
 };
 
 // 生成配置监听事件表
@@ -82,7 +86,7 @@ async function flushChanges() {
   const result = planRefresh({
     effects,
     changeStates: { ...changeMap },
-    currentImports: util.GetImports(),
+    currentImports: loader.readImports(),
     fileExists: planCapabilities.fileExists,
     toImportUri: planCapabilities.toImportUri,
   });
@@ -92,7 +96,7 @@ async function flushChanges() {
 
   // 写入的永远是计划给出的合法字符串数组：文件缺失等失败只出现在 errors 里，
   // 不会以 undefined 的形式流进全局配置。
-  await util.UpdateImports(result.imports);
+  await loader.writeImports(result.imports);
 
   for (const notice of result.notices) {
     vscode.window.showInformationMessage(notice);
@@ -103,7 +107,7 @@ async function flushChanges() {
 
   setTimeout(() => {
     vscode.window.showInformationMessage("效果修改成功！点击确认进行重载");
-    vscode.commands.executeCommand("extension.updateCustomCSS");
+    loader.reload();
   }, 400);
 }
 
