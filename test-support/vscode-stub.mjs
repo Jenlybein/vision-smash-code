@@ -9,10 +9,13 @@
  *
  * ```js
  * import { register } from "node:module";
- * register("./helpers/vscode-stub.mjs", import.meta.url);
- * const stub = await import("./helpers/vscode-stub.mjs");
+ * register("../test-support/vscode-stub.mjs", import.meta.url);
+ * const stub = await import("../test-support/vscode-stub.mjs");
  * const { activate } = await import("../extension.js");
  * ```
+ *
+ * 放在 `test/` **之外**：`node --test` 的默认发现规则会把 `test/` 下的所有模块都当作
+ * 测试文件执行，桩被当成"空测试文件"计数既不诚实，也会掩盖它自己的意外副作用。
  *
  * 本文件把 `resolve` 与「假 API」放在一起：钩子把 `"vscode"` 解析到本文件自身，
  * 于是测试 import 到的实例与 extension.js 拿到的是同一份。

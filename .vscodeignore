@@ -2,6 +2,7 @@
 .vscode/**
 .vscode-test/**
 test/**
+test-support/**
 **/src/test/**
 **/*.test.js
 .gitignore

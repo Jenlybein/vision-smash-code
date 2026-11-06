@@ -12,13 +12,16 @@ import { register } from "node:module";
  * 内容写入还在 `eventMap` 里即时触发——后端没装时照样把生成结果写进安装目录，
  * 只会在磁盘上留下「看起来生效了」的假象。这里验证写盘也被跳过。
  *
- * 做法：把裸标识符 `"vscode"` 指到 `test/helpers/vscode-stub.mjs`，于是 `extension.js`
+ * 做法：把裸标识符 `"vscode"` 指到 `test-support/vscode-stub.mjs`，于是 `extension.js`
  * 能在这个纯 Node 进程里被加载与激活，改动配置也能用假事件触发。
+ *
+ * 桩放在 `test/` **之外**：`node --test` 的默认发现规则会把 `test/` 下的所有模块都当成
+ * 测试文件执行，桩被当成"空测试文件"计一条，既不诚实也会掩盖它自己的意外副作用。
  */
 
-register("./helpers/vscode-stub.mjs", import.meta.url);
+register("../test-support/vscode-stub.mjs", import.meta.url);
 
-const stub = await import("./helpers/vscode-stub.mjs");
+const stub = await import("../test-support/vscode-stub.mjs");
 const { activate } = await import("../extension.js");
 
 // 目标文件里标记块之外的原文：只要写盘发生，它前面就会被插入配置块。
