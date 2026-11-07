@@ -8,7 +8,7 @@
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "keywords": [
     "cursor",
     "animation",
@@ -618,6 +618,8 @@
         }
       },
       {
+        "title": "Gradient Theme Effects - 主题渐变效果设置",
+        "order": 5,
         "properties": {
           "visionSmashCode.gradient.editor-hover": {
             "type": "boolean",
