@@ -13,67 +13,61 @@ A visual enhancement extension for VS Code that injects life into your coding ex
 
 ### 📋 Prerequisites
 
-> ⚠️ **Important:** You must install **one** injection backend before using this extension, or no visual effects will work: [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) (default) or [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style) (experimental).
+> ⚠️ **Important:** This extension cannot modify editor styles by itself. It relies on a third-party injection backend to load the CSS/JS it generates, and the only supported backend is **[Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style)** (`subframe7536.custom-ui-style`).
 
-VS Code extensions cannot directly modify editor styles, so a third-party loader extension is required to inject custom CSS/JS. Which loader is used is your choice, via the `visionSmashCode.loader` setting.
-
-The loader is **not** a hard dependency of this extension: if the backend you selected is missing, you get an error with an install action instead of the extension silently doing nothing.
-
-> 🆕 **New in 1.2.0 — the injection backend is now selectable.** You are no longer locked to one loader. `be5invis` (Custom CSS and JS Loader) stays the default, so **if you were already using this extension, nothing changes for you** — your existing setup keeps working exactly as before. The new option is `custom-ui-style` (Custom UI Style), currently **experimental**; see [Choosing the injection backend](#-choosing-the-injection-backend).
+The backend is **not** a hard dependency: if it is missing, this extension shows an error with an install action instead of silently doing nothing, and it writes neither settings nor generated files until the backend is available.
 
 ### 📝 Enable Steps
 
 1. Open VS Code Extension Marketplace
-2. **Install one injection backend:** `Custom CSS and JS Loader` (by be5invis, default) — or `Custom UI Style` (by subframe7536, experimental)
+2. **Install the injection backend:** `Custom UI Style` (by subframe7536)
 3. **Install this extension:** Search and install `Vision Smash Code` (by gentlybeing)
 4. **Open Settings**
    - Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (macOS) to open the Command Palette
    - Type `Vision Smash Code: OpenSettings` and run
 5. **Enable features:** Toggle the features you want in the settings page
 6. **Apply changes**
-   - After changing config, the extension will prompt you to reload VS Code
-   - Click **Confirm** in the prompt shown by your chosen backend (`Custom CSS and JS Loader` for `be5invis`, `Custom UI Style` for `custom-ui-style`)
+   - The extension calls the backend's reload command for you; if the UI does not update, run `Custom UI Style: Reload` from the Command Palette manually
+   - If `custom-ui-style.reloadWithoutPrompting` is `false` (the default), a notification prompt appears first — confirm it to let the backend reload
+   - On Windows, if nothing changes, fully quit VS Code (close **all** windows) and start it again; a plain "Reload Window" is sometimes not enough
    - Wait for VS Code to restart and apply all effects
 
 ![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
+
+### ⬆️ Upgrading from 1.2.x
+
+This version no longer supports Custom CSS and JS Loader. Uninstall it (run its restore action if it offers one), and remove this extension's entries from `vscode_custom_css.imports` in `settings.json`. Then install Custom UI Style.
 
 ### ⚙️ Configuration Options
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `visionSmashCode.loader` | `be5invis` | Which extension injects the CSS/JS: `be5invis` (Custom CSS and JS Loader) or `custom-ui-style` (Custom UI Style, **experimental**) |
 | `visionSmashCode.base.cursor` | `false` | Enable cursor trail effects |
 | `visionSmashCode.base.animations` | `false` | Enable window animation effects |
 | `visionSmashCode.base.gradient` | `false` | Enable gradient theme effects |
 | `visionSmashCode.base.word` | `false` | Enable typing explosion effects |
 | `visionSmashCode.base.mouse` | `false` | Enable mouse tail effects |
 
-### 🔀 Choosing the injection backend
+### 🔌 Injection backend
 
-| `visionSmashCode.loader` | Backend | Status |
-| --- | --- | --- |
-| `be5invis` (default) | [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) | Stable — behavior is identical to previous releases |
-| `custom-ui-style` | [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style) | **Experimental** — switch back at any time |
+This extension generates CSS/JS files and asks **Custom UI Style** to inject them. It is the only supported backend: both loaders used to patch the same `workbench.html` and corrupt each other's backups, so the dual-backend switch was removed.
 
-**What switching does:** this extension removes **only its own** entries from the previous backend's import list and adds them to the new one. An entry counts as "its own" only if its path ends in `src/<this extension's asset directory>/<asset file>` — so a file you added yourself is left alone even if its name happens to match. **Your own entries in those lists are never modified or deleted.** Both steps report errors independently — a failed cleanup does not block writing to the new backend. If the new backend is not installed, nothing is written and you get an error with an install action; your current backend keeps working.
+**What this extension writes:** only its own entries in `custom-ui-style.external.imports`. An entry counts as "its own" only if its path ends in `src/<this extension's asset directory>/<asset file>`, so **your own entries in that list are never modified or deleted.**
 
-**Why is `custom-ui-style` experimental?** That backend loads local `.js` files as **ES modules** (`<script type="module">`), while the effects in this extension are classic scripts, and its object-style entries (`{ "type": "js", "url": ... }`) only accept `https://` URLs, so local files can only be injected as `file://` strings. The two CSS effects are expected to work; **the three JS effects (cursor trail, mouse trail, typing explosion) may not**. The maintainer could not verify real VS Code behavior, so this backend is offered as a switch for users who want to try it — `be5invis` stays the default.
+**After changing any setting:**
 
-**Manual verification steps** (not verified by the maintainer, please try them yourself):
+- Run `Custom UI Style: Reload` from the Command Palette. The backend only re-reads `custom-ui-style.external.imports` on reload.
+- `custom-ui-style.reloadWithoutPrompting` defaults to `false`; the backend shows a notification prompt you must confirm before it reloads.
+- On Windows, a plain "Reload Window" is sometimes not enough: fully quit VS Code by closing **all** windows, then start it again.
+- If `custom-ui-style.external.loadStrategy` is set to `"disable"`, **all** external resources are ignored — including this extension's imports. Set it back to the default `"refetch"` (or `"cache"`).
 
-1. Install and enable `Custom UI Style` (tested against its published manifest/source of 0.7.2).
-2. Set `visionSmashCode.loader` to `custom-ui-style` and reload the window when prompted.
-3. Check `settings.json`: `custom-ui-style.external.imports` should contain your enabled effects as `file://…` strings, and this extension's entries should be gone from `vscode_custom_css.imports` — **your own entries there must still be present**.
-4. Open `Developer: Toggle Developer Tools` → Console and check whether the JS effects load (a module loaded as ESM may fail with strict-mode/scope errors).
-5. Switch back to `be5invis` and confirm the effects come back.
+**Not verified on a real editor:** Custom UI Style loads local `.js` files as **ES modules** (`<script type="module">`), while the effects in this extension are classic scripts. Whether the three JS effects (cursor trail, mouse trail, typing explosion) actually run under ESM semantics **has not been verified in a real VS Code instance**. The two CSS effects are expected to work. To check, open `Developer: Toggle Developer Tools` → Console after reloading and look for module/scope errors.
 
-### ❓ Why does VS Code show "corrupted"?
+### ❓ Why does VS Code say the installation is "corrupt"?
 
-This is normal! Custom CSS and JS Loader modifies VS Code's internal files to inject styles. **It does not affect any VS Code features or your experience.**
+This is normal! Custom UI Style changes files inside the VS Code installation directory to inject styles. It keeps backups with a `.custom-ui-style` suffix and suppresses the corruption notice itself. **It does not affect any VS Code features or your experience.**
 
-To dismiss the warning:
-- Click **"Don't show again"** in the popup
-- Or see [Custom CSS and JS Loader docs](https://github.com/be5invis/vscode-custom-css)
+To revert every change made by the backend, run `Custom UI Style: Rollback` from the Command Palette.
 
 ---
 
@@ -171,7 +165,7 @@ Thanks to the following projects for inspiration and reference:
 | **VSCode Animations** | Window animation inspiration | [GitHub](https://github.com/BrandonKirbyson/VSCode-Animations) |
 | **Neovide Cursor** | Cursor effect inspiration | [GitHub](https://github.com/30d98f9b2/Neovide-Cursor) |
 | **Gradient Theme** | Gradient beautification | [GitHub](https://github.com/shaobeichen/gradient-theme) |
-| **Custom CSS and JS Loader** | Style injection solution | [GitHub](https://github.com/be5invis/vscode-custom-css) |
+| **Custom UI Style** | Style injection solution | [GitHub](https://github.com/subframe7536/vscode-custom-ui-style) |
 
 ## 📄 License
 

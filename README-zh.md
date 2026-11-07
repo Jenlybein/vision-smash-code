@@ -12,67 +12,61 @@
 
 ### 📋 前置要求
 
-> ⚠️ 重要：使用本扩展前，必须安装**一个**注入后端插件，否则无法加载任何视觉效果：[Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css)（默认）或 [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style)（实验性）。
+> ⚠️ 重要：本扩展自己无法修改编辑器样式，必须依赖第三方「注入后端」加载它生成的 CSS/JS。目前**只支持** [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style)（`subframe7536.custom-ui-style`）。
 
-这是因为 VS Code 扩展本身无法直接修改编辑器样式，需要通过第三方加载器插件来注入自定义 CSS 和 JavaScript。用哪一个由设置项 `visionSmashCode.loader` 决定。
-
-> 🆕 **1.2.0 新增：注入方式可以选择。** 你不再被绑定在单一的加载器上。`be5invis`（Custom CSS and JS Loader）仍是默认值，所以**如果你之前就在用本扩展，升级后一切照旧**，原有配置继续正常工作。新增的选项是 `custom-ui-style`（Custom UI Style），目前为**实验性**，详见[选择注入后端](#-选择注入后端)。
-
-加载器**不是**本扩展的硬依赖：所选后端缺失时会弹出带「安装扩展」动作的错误提示，而不是静默失效。
+后端**不是**本扩展的硬依赖：缺失时会弹出带「安装扩展」动作的错误提示，而不是静默失效；在后端可用之前，不写任何配置，也不往磁盘写生成的产物。
 
 ### 📝 启用步骤
 
 1. 打开 VS Code 扩展商店
-2. **安装一个注入后端**：`Custom CSS and JS Loader`（发布者：be5invis，默认）—— 或 `Custom UI Style`（发布者：subframe7536，实验性）
+2. **安装注入后端**：`Custom UI Style`（发布者：subframe7536）
 3. **安装本扩展**：搜索安装 `Vision Smash Code`（发布者：gentlybeing）
 4. **打开设置**
    - 按 `Ctrl+Shift+P` (Windows/Linux) 或 `Cmd+Shift+P` (macOS) 打开命令面板
    - 输入 `Vision Smash Code: OpenSettings` 并运行
 5. **启用功能**：在打开的设置页面中启用你想要的功能
 6. **应用更改**
-   - 修改配置后，扩展会自动提示你重载 VS Code
-   - 点击你所选后端弹出的提示框中的 **确认** 按钮（`be5invis` 是 `Custom CSS and JS Loader`，`custom-ui-style` 是 `Custom UI Style`）
+   - 扩展会自动调用该后端的重载命令；若界面没有更新，请手动执行 `Custom UI Style: Reload`
+   - 若 `custom-ui-style.reloadWithoutPrompting` 为 `false`（默认值），会先弹出提示框，需要确认后才会重载
+   - Windows 上若没有生效，请**完全退出 VS Code**（关闭所有窗口）后重新启动；仅执行「重新加载窗口 / Reload Window」有时不够
    - 等待 VS Code 重启并应用所有效果
 
 ![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
+
+### ⬆️ 从 1.2.x 升级
+
+本版本不再支持 Custom CSS and JS Loader。请卸载它（必要时执行它的还原操作），并手动清理 `settings.json` 里 `vscode_custom_css.imports` 中指向 `vision-smash-code` 的条目。之后再安装 Custom UI Style。
 
 ### ⚙️ 配置选项
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `visionSmashCode.loader` | `be5invis` | 由哪个扩展注入 CSS/JS：`be5invis`（Custom CSS and JS Loader）或 `custom-ui-style`（Custom UI Style，**实验性**） |
-| `visionSmashCode.base.cursorEnabled` | `false` | 启用光标拖尾特效 |
-| `visionSmashCode.base.animationsEnabled` | `false` | 启用窗口动画效果 |
-| `visionSmashCode.base.gradientEnabled` | `false` | 启用渐变主题效果 |
+| `visionSmashCode.base.cursor` | `false` | 启用光标拖尾特效 |
+| `visionSmashCode.base.animations` | `false` | 启用窗口动画效果 |
+| `visionSmashCode.base.gradient` | `false` | 启用渐变主题效果 |
 | `visionSmashCode.base.word` | `false` | 启用打字文字爆炸效果 |
 | `visionSmashCode.base.mouse` | `false` | 启用鼠标尾迹效果 |
 
-### 🔀 选择注入后端
+### 🔌 注入后端
 
-| `visionSmashCode.loader` | 后端 | 状态 |
-| --- | --- | --- |
-| `be5invis`（默认） | [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) | 稳定 —— 行为与之前版本完全一致 |
-| `custom-ui-style` | [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style) | **实验性** —— 可随时切回 |
+本扩展负责生成 CSS/JS 文件，由 **Custom UI Style** 负责注入。它是唯一支持的后端：历史上两个加载器都会改写同一个 `workbench.html`，并各自维护备份，互相污染，因此双后端切换已被删除。
 
-**切换会做什么：** 本扩展会**只移除属于自己**的条目（从旧后端的注入列表里删掉），再写入新后端。判定「属于自己」的依据是路径形如 `src/<本扩展的资产目录>/<资产文件>`，因此**你自己添加的文件即使名字碰巧相同也不会被删掉**。**你在这些列表里的其它条目不会被修改或删除。** 两步各自独立报错——清理失败不会阻断新后端的写入。若新后端未安装，不会写入任何配置，而是弹出带「安装扩展」动作的错误提示，当前后端继续正常工作。
+**本扩展会写什么：** 只写 `custom-ui-style.external.imports` 里属于本扩展的条目。判定「属于本扩展」的依据是路径形如 `src/<本扩展的资产目录>/<资产文件>`，因此**你自己添加的条目不会被修改或删除。**
 
-**为什么 `custom-ui-style` 是实验性的？** 该后端会把本地 `.js` 当作 **ES module** 加载（`<script type="module">`），而本扩展的效果脚本是经典脚本；它接受的对象条目（`{ "type": "js", "url": ... }`）只允许 `https://` 地址，本地文件只能用 `file://` 字符串注入。两个 CSS 类效果预期可用；**三个 JS 类效果（光标拖尾、鼠标尾迹、文字爆炸）可能不生效**。维护者无法在真实 VS Code 上验证，因此把它作为「愿意尝新的用户可自行验证的开关」提供，默认仍是 `be5invis`。
+**修改任何设置之后：**
 
-**人工验证步骤**（维护者**未**验证，请自行尝试）：
+- 在命令面板执行 `Custom UI Style: Reload`。该后端只在重载时重新读取 `custom-ui-style.external.imports`。
+- `custom-ui-style.reloadWithoutPrompting` 默认为 `false`，此时会先弹出提示框，需要你确认后才会重载。
+- Windows 上仅执行「重新加载窗口 / Reload Window」有时不够：请**完全退出 VS Code**（关闭所有窗口）后重新启动。
+- 若把 `custom-ui-style.external.loadStrategy` 设为 `"disable"`，**所有**外部资源都会被忽略——包括本扩展注入的条目。请改回默认的 `"refetch"`（或 `"cache"`）。
 
-1. 安装并启用 `Custom UI Style`（本仓库按其 0.7.2 已发布版本核实过配置键与条目规则）。
-2. 把 `visionSmashCode.loader` 设为 `custom-ui-style`，按提示重载窗口。
-3. 检查 `settings.json`：`custom-ui-style.external.imports` 里应出现已启用效果的 `file://…` 条目；`vscode_custom_css.imports` 里本扩展的条目应已被移除，**你自己的条目必须仍然在**。
-4. 打开 `Developer: Toggle Developer Tools` → Console，观察 JS 效果是否加载（ESM 可能因严格模式 / 作用域差异报错）。
-5. 切回 `be5invis`，确认效果恢复。
+**未在真实编辑器中验证：** Custom UI Style 会把本地 `.js` 当作 **ES module** 加载（`<script type="module">`），而本扩展的效果脚本是经典脚本。三个 JS 类效果（光标拖尾、鼠标尾迹、文字爆炸）在 ESM 语义下是否真的能执行，**未经真实 VS Code 实例验证**；两个 CSS 类效果预期可用。重载后打开 `Developer: Toggle Developer Tools` → Console，可查看是否有模块 / 作用域相关报错。
 
 ### ❓ VS Code 提示"已损坏"？
 
-这是正常现象！因为 Custom CSS and JS Loader 需要修改 VS Code 的内部文件来注入样式。**这不会影响 VS Code 的任何功能和使用体验**。
+这是正常现象！Custom UI Style 需要修改 VS Code 安装目录里的文件来注入样式。它会把被修改的文件备份为带 `.custom-ui-style` 后缀的同名文件，并自行抑制「安装已损坏」的提示。**这不会影响 VS Code 的任何功能和使用体验。**
 
-如果想关闭这个警告提示：
-- 点击弹窗中的 **"不再提示"** 按钮
-- 或查阅 [Custom CSS and JS Loader 文档](https://github.com/be5invis/vscode-custom-css)
+如需撤销该后端做过的全部改动，请在命令面板执行 `Custom UI Style: Rollback`。
 
 ## ✨ 功能特性
 
@@ -168,7 +162,7 @@
 | **VSCode Animations** | 窗口动效灵感 | [GitHub](https://github.com/BrandonKirbyson/VSCode-Animations) |
 | **Neovide Cursor** | 光标特效灵感 | [GitHub](https://github.com/30d98f9b2/Neovide-Cursor) |
 | **Gradient Theme** | 渐变美化灵感 | [GitHub](https://github.com/shaobeichen/gradient-theme) |
-| **Custom CSS and JS Loader** | 样式注入解决方案 | [GitHub](https://github.com/be5invis/vscode-custom-css) |
+| **Custom UI Style** | 样式注入解决方案 | [GitHub](https://github.com/subframe7536/vscode-custom-ui-style) |
 
 ## 📄 许可证
 
