@@ -88,3 +88,86 @@ test("对照：后端可用时同一条配置变化确实会写盘（说明上�
   assert.match(content, /#ABCDEF/);
   assert.equal(stub.log.errors.length, 0);
 });
+
+// ---------------------------------------------------------------------------
+// 激活时对账：升级后旧安装目录的残留条目
+//
+// 现象（用户实测）：从 1.2.0 升到 1.2.1 后，注入列表里仍留着指向
+// `…/gentlybeing.vision-smash-code-1.2.0/src/…` 的条目，而 VS Code 升级时已把旧目录删掉，
+// 加载器重载时读不到文件，就刷出 `Fail to get content of [...], ENOENT`。
+//
+// 旧实现在激活时完全不对账，只有"改配置"或"切后端"才结算导入，所以残留会一直留着。
+// 下面两条覆盖"该修时修"与"不该动时一点不动"。
+// ---------------------------------------------------------------------------
+
+const STALE_DIR = "gentlybeing.vision-smash-code-1.2.0";
+const STALE_URI = `file:///C:/Users/me/.vscode/extensions/${STALE_DIR}/src/neovide-cursor/neovide-cursor.js`;
+
+test("激活时对账：指向旧安装目录的条目被替换为当前安装目录的条目", async () => {
+  const { dir } = makeExtensionDir();
+
+  stub.reset({
+    installed: true,
+    config: {
+      "visionSmashCode.loader": "be5invis",
+      "visionSmashCode.base.cursor": true,
+      "vscode_custom_css.imports": [STALE_URI],
+    },
+  });
+
+  activate({ subscriptions: [], extensionPath: dir });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const written = stub.log.updates.filter((entry) => entry.key === "imports");
+  assert.equal(written.length, 1, "激活时对账应写入一次注入列表");
+
+  const list = written[0].value;
+  assert.ok(
+    !list.some((entry) => entry.includes(STALE_DIR)),
+    `旧安装目录的条目必须被移除，实际仍写着：${JSON.stringify(list)}`,
+  );
+  assert.equal(list.length, 1, `应只剩光标一条，实际：${JSON.stringify(list)}`);
+  assert.match(list[0], /src\/neovide-cursor\/neovide-cursor\.js$/);
+  assert.match(list[0], /^file:\/\//, "本地条目必须是 file:// 字符串");
+  // 弹一条提示让用户重载，否则列表改了但不生效。
+  assert.ok(
+    stub.log.informations.some((message) => message.includes("重载")),
+    "写入后必须提示用户重载窗口",
+  );
+});
+
+test("激活时对账：列表已与当前安装目录一致时完全静默（不写配置、不弹提示）", async () => {
+  const { dir } = makeExtensionDir();
+
+  // 第一次：从陈旧条目校正到当前条目，拿到"正确列表"。
+  stub.reset({
+    installed: true,
+    config: {
+      "visionSmashCode.loader": "be5invis",
+      "visionSmashCode.base.cursor": true,
+      "vscode_custom_css.imports": [STALE_URI],
+    },
+  });
+  activate({ subscriptions: [], extensionPath: dir });
+  await new Promise((resolve) => setImmediate(resolve));
+  const correct = stub.log.updates.find((entry) => entry.key === "imports").value;
+
+  // 第二次：用正确列表重新激活，不应产生任何写入或提示。
+  stub.reset({
+    installed: true,
+    config: {
+      "visionSmashCode.loader": "be5invis",
+      "visionSmashCode.base.cursor": true,
+      "vscode_custom_css.imports": [...correct],
+    },
+  });
+  activate({ subscriptions: [], extensionPath: dir });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(
+    stub.log.updates.length,
+    0,
+    `列表已正确时不得重写，实际写入：${JSON.stringify(stub.log.updates)}`,
+  );
+  assert.equal(stub.log.informations.length, 0, "无差异时不应打扰用户");
+});

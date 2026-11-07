@@ -7,6 +7,7 @@ import {
 } from "./src/common/effect-descriptors.js";
 import { refreshEffect } from "./src/install/refresh-effect.js";
 import { planRefresh } from "./src/common/refresh-plan.js";
+import { normalizePathKey } from "./src/common/import-paths.js";
 import { selectLoader } from "./src/common/loader-adapter.js";
 import { switchLoader } from "./src/install/loader-switch.js";
 
@@ -104,12 +105,8 @@ for (const [key, mod] of Object.entries(modules)) {
 // - `result.writes` **目前故意不执行**：内容写入的时机与实现保持原样——eventMap 里各效果
 //   的刷新由 refresh-effect.js 即时调用。所以下面只使用 `result.imports` /
 //   `result.nextChangeStates` / `result.notices` / `result.errors`。
-async function flushChanges() {
-  // 所选后端不可用：什么都不写。写进一个没人消费的配置键只会制造假象。
-  // 整轮固定用同一个适配器，避免结算途中切换后端把结果写到两个地方。
-  const activeLoader = loader;
-  if (!activeLoader) return;
-
+// 跑一遍计划：只做纯计算，不写配置、不弹提示。调用方负责结算状态表与写入。
+function planOnce(activeLoader) {
   const base = vscode.workspace.getConfiguration("visionSmashCode.base");
 
   // 描述符只带导入规划需要的字段（key / targetPath / enabled）；省略 kind 表示
@@ -120,7 +117,7 @@ async function flushChanges() {
     enabled: base.get(key) === true,
   }));
 
-  const result = planRefresh({
+  return planRefresh({
     effects,
     changeStates: { ...changeMap },
     currentImports: activeLoader.readImports(),
@@ -129,6 +126,15 @@ async function flushChanges() {
     // 由适配层在写回时吸收。绑定本轮捕获的适配器，避免结算途中切换后端导致前后不一致。
     toImportUri: (filePath) => activeLoader.toEntry(filePath),
   });
+}
+
+async function flushChanges() {
+  // 所选后端不可用：什么都不写。写进一个没人消费的配置键只会制造假象。
+  // 整轮固定用同一个适配器，避免结算途中切换后端把结果写到两个地方。
+  const activeLoader = loader;
+  if (!activeLoader) return;
+
+  const result = planOnce(activeLoader);
 
   // 结算状态表：计划给出的新状态表整表替换（结算后全部回到 none）。
   Object.assign(changeMap, result.nextChangeStates);
@@ -183,6 +189,40 @@ async function handleLoaderChange() {
   });
 }
 
+// 激活时对账注入列表。
+//
+// 为什么需要：扩展的安装目录带版本号（…-1.2.0 → …-1.2.1）。升级后 VS Code 会删除旧目录，
+// 但注入列表里指向旧目录的条目还在——加载器在重载时读不到文件，就会刷出
+// "Fail to get content of [...], ENOENT"。此前只在"配置变更"与"切换后端"时结算导入，
+// 激活时从不对账，这种残留会一直留着，直到用户碰巧改动到对应的那个效果。
+//
+// 做法：以"全部按 switch 结算"跑一遍计划——等价于按当前配置与当前**安装目录**重建
+// 本扩展的条目。只有当结果与现状真的不同才写入并提示重载；无差异时完全静默，
+// 不产生多余写入、也不弹提示。
+//
+// 边界：所选后端不可用时直接返回；只认属于本扩展的条目（判据在 import-paths 里），
+// 用户自己添加的条目不会被触碰。
+async function reconcileImportsOnActivate() {
+  const activeLoader = loader;
+  if (!activeLoader) return;
+
+  const before = activeLoader.readImports();
+
+  for (const key of Object.keys(changeMap)) changeMap[key] = "switch";
+  const result = planOnce(activeLoader);
+  Object.assign(changeMap, result.nextChangeStates);
+
+  // 顺序可能与现状不同但内容等价：按归一化路径比对，避免每次启动都重写一遍配置。
+  const canonical = (ids) =>
+    ids.map((id) => normalizePathKey(id)).filter(Boolean).sort().join("\n");
+  if (canonical(before) === canonical(result.imports)) return;
+
+  await activeLoader.writeImports(result.imports);
+  vscode.window.showInformationMessage(
+    "检测到注入列表与本扩展的当前安装目录不一致，已自动修正。请重载窗口使其生效。",
+  );
+}
+
 // 扩展激活
 function activate(context) {
   // 初始化模块路径表
@@ -194,6 +234,10 @@ function activate(context) {
   // 按设置选定注入后端并检测可用性。不可用时 loader 为 null：
   // 后续所有写入都被跳过，用户只会看到一条带安装动作的错误提示。
   loader = applyLoaderSetting();
+
+  // 升级后旧安装目录被删除，注入列表里指向它的条目会让加载器报 ENOENT。
+  // 激活时静默对账一次；无差异时不会写入任何东西。
+  void reconcileImportsOnActivate();
 
   // 防抖参数
   let debounceTimer = null;
