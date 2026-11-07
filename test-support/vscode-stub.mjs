@@ -40,6 +40,9 @@ export async function resolve(specifier, context, next) {
 let config = {};
 // 所选后端是否"已安装"（决定 `selectLoader` 的可用性判定）。
 let installed = false;
+// 指定哪些扩展 id 可用；为 null 时退回到「installed 决定一切」。
+// 用于区分「当前后端装了、另一个后端没装」这种只有多后端才需要表达的场面。
+let availableIds = null;
 // `onDidChangeConfiguration` 注册的回调。
 let changeHandler = null;
 
@@ -55,9 +58,11 @@ export const log = {
 export function reset({
   config: nextConfig = {},
   installed: nextInstalled = false,
+  availableIds: nextAvailableIds = null,
 } = {}) {
   config = { ...nextConfig };
   installed = nextInstalled;
+  availableIds = nextAvailableIds;
   changeHandler = null;
   log.errors.length = 0;
   log.informations.length = 0;
@@ -126,6 +131,8 @@ export const commands = {
 
 export const extensions = {
   getExtension(id) {
+    // 给了白名单就按 id 判定，否则按 installed 一刀切。
+    if (availableIds) return availableIds.includes(id) ? { id } : undefined;
     return installed ? { id } : undefined;
   },
 };

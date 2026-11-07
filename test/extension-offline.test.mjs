@@ -103,6 +103,81 @@ test("对照：后端可用时同一条配置变化确实会写盘（说明上�
 const STALE_DIR = "gentlybeing.vision-smash-code-1.2.0";
 const STALE_URI = `file:///C:/Users/me/.vscode/extensions/${STALE_DIR}/src/neovide-cursor/neovide-cursor.js`;
 
+// ---------------------------------------------------------------------------
+// 激活时清理「其它」后端
+//
+// 现象（用户实测）：关掉主题渐变、重启后渐变仍在。两个加载器同时注入了——改设置只更新
+// 当前选中的后端，另一个还在注入旧产物，于是"关不掉"也"改了没反应"。
+//
+// `switchLoader` 的清理只在切换后端那一刻跑；这里补上激活时的不变量：
+// 本扩展的资产文件最多出现在一个加载器的列表里。
+// ---------------------------------------------------------------------------
+
+const OTHER_SECTION = "custom-ui-style";
+const OUR_GRADIENT =
+  "file:///C:/Users/me/.vscode/extensions/gentlybeing.vision-smash-code-1.2.0/src/gradient-theme/gradient-theme.css";
+const USER_OWN = "file:///C:/Users/me/my-themes/own.css";
+
+test("激活时清理其它后端：本扩展的条目不会同时留在两个后端的列表里", async () => {
+  const { dir } = makeExtensionDir();
+
+  stub.reset({
+    installed: true,
+    config: {
+      "visionSmashCode.loader": "be5invis",
+      "visionSmashCode.base.cursor": true,
+      // 人为制造"两个后端都有我们的条目"：这是"关掉效果却还在"的成因。
+      "custom-ui-style.external.imports": [OUR_GRADIENT, USER_OWN],
+    },
+  });
+
+  activate({ subscriptions: [], extensionPath: dir });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const writes = stub.log.updates.filter((entry) => entry.section === OTHER_SECTION);
+  assert.equal(writes.length, 1, "应当清理一次非选中后端的列表");
+  assert.deepEqual(
+    writes[0].value,
+    [USER_OWN],
+    `只应留下用户自己的条目，实际：${JSON.stringify(writes[0].value)}`,
+  );
+  assert.ok(
+    stub.log.informations.some((message) => message.includes("同时注入")),
+    "清理后应提示用户重载",
+  );
+});
+
+test("对照：其它后端没装时不碰它的配置键（不制造没人消费的配置）", async () => {
+  const { dir } = makeExtensionDir();
+
+  stub.reset({
+    // 只有当前后端可用：另一个后端没装。这种场面下仍去写它的配置键，
+    // 等于凭空造出一个没人消费的假配置（评审 F9 的同一条原则）。
+    installed: true,
+    availableIds: ["be5invis.vscode-custom-css"],
+    config: {
+      "visionSmashCode.loader": "be5invis",
+      "visionSmashCode.base.cursor": true,
+      "custom-ui-style.external.imports": [OUR_GRADIENT],
+    },
+  });
+
+  activate({ subscriptions: [], extensionPath: dir });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(
+    stub.log.updates.filter((entry) => entry.section === OTHER_SECTION).length,
+    0,
+    "另一个后端未安装时不得写它的配置键",
+  );
+  // 当前后端的对账照常进行——这条不能被"顺手一起跳过"。
+  assert.equal(
+    stub.log.updates.filter((entry) => entry.section === "vscode_custom_css").length,
+    1,
+    "当前后端的对账不应受到另一个后端缺失的影响",
+  );
+});
+
 test("激活时对账：指向旧安装目录的条目被替换为当前安装目录的条目", async () => {
   const { dir } = makeExtensionDir();
 

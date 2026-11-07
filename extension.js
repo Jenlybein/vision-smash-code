@@ -7,8 +7,8 @@ import {
 } from "./src/common/effect-descriptors.js";
 import { refreshEffect } from "./src/install/refresh-effect.js";
 import { planRefresh } from "./src/common/refresh-plan.js";
-import { normalizePathKey } from "./src/common/import-paths.js";
-import { selectLoader } from "./src/common/loader-adapter.js";
+import { normalizePathKey, removeOwnedEntries } from "./src/common/import-paths.js";
+import { LOADERS, createLoaderAdapter, selectLoader } from "./src/common/loader-adapter.js";
 import { switchLoader } from "./src/install/loader-switch.js";
 
 // 注入后端的选择权在用户手里：读哪个配置节、调哪个重载命令、条目长什么样，
@@ -189,6 +189,53 @@ async function handleLoaderChange() {
   });
 }
 
+// 激活时把本扩展的条目从**其它**注入后端的列表里清掉。
+//
+// 为什么需要：`switchLoader` 的清理只在「`visionSmashCode.loader` 被改动」那一刻执行。
+// 一旦某一步让本扩展的条目同时留在了两个后端的列表里（切换时清理失败、用户手动改过、
+// 或升级残留），两个加载器就会**同时注入**。此后改设置只更新当前选中的那个后端，
+// 另一个仍在注入旧的产物——表现为「关掉了效果却还在」「改了设置重启也不变」。
+//
+// 不变量：本扩展的资产文件最多出现在**一个**加载器的注入列表里。
+//
+// 边界：只清理**已安装**的后端。后端没装时写它的配置键等于制造一个没人消费的假配置
+// （评审 F9 的同一条原则）。单个后端失败不影响其它后端，也不影响当前后端。
+async function dropEntriesFromOtherBackends() {
+  const activeLoader = loader;
+  if (!activeLoader) return;
+
+  const ours = Object.values(modules)
+    .map((mod) => mod.filePath)
+    .filter(Boolean);
+  if (ours.length === 0) return;
+
+  let cleaned = false;
+
+  for (const declaration of Object.values(LOADERS)) {
+    if (declaration.id === activeLoader.id) continue;
+
+    // 没装就不碰：不写没人消费的配置键。
+    if (!vscode.extensions.getExtension(declaration.extensionId)) continue;
+
+    try {
+      const other = createLoaderAdapter({ vscode, loader: declaration });
+      const current = other.readImports();
+      const remaining = removeOwnedEntries(current, ours);
+      if (remaining.length === current.length) continue;
+      await other.writeImports(remaining);
+      cleaned = true;
+    } catch {
+      // 单个后端清理失败不能阻断其它后端；当前后端的写入照旧进行。
+    }
+  }
+
+  if (cleaned) {
+    vscode.window.showInformationMessage(
+      "检测到本扩展的条目同时存在于另一个注入后端，已移除，避免两个后端同时注入。请重载窗口使其生效。",
+    );
+  }
+}
+
 // 激活时对账注入列表。
 //
 // 为什么需要：扩展的安装目录带版本号（…-1.2.0 → …-1.2.1）。升级后 VS Code 会删除旧目录，
@@ -235,9 +282,13 @@ function activate(context) {
   // 后续所有写入都被跳过，用户只会看到一条带安装动作的错误提示。
   loader = applyLoaderSetting();
 
-  // 升级后旧安装目录被删除，注入列表里指向它的条目会让加载器报 ENOENT。
-  // 激活时静默对账一次；无差异时不会写入任何东西。
-  void reconcileImportsOnActivate();
+  // 升级后旧安装目录被删除，注入列表里指向它的条目会让加载器报 ENOENT；
+  // 同时也要防止条目留在另一个后端里导致两个后端同时注入。
+  // 顺序：先摘掉其它后端的条目，再对账当前后端——两者写的是不同的配置键，互不覆盖。
+  void (async () => {
+    await dropEntriesFromOtherBackends();
+    await reconcileImportsOnActivate();
+  })();
 
   // 防抖参数
   let debounceTimer = null;
