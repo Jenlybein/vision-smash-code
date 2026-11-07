@@ -1,6 +1,6 @@
-﻿# Vision Smash Code 🎨
+# Vision Smash Code 🎨
 
-[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.80.1-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
+[![VS Code Version](https://img.shields.io/badge/VS%20Code-%5E1.100.0-blue)](https://code.visualstudio.com/) [![Downloads](https://img.shields.io/vscode-marketplace/i/gentlybeing.vision-smash-code)](https://marketplace.visualstudio.com/items?itemName=gentlybeing.vision-smash-code) ![License](https://img.shields.io/badge/license-GPL-green.svg)
 
 一款为 VS Code 打造的视觉增强扩展，为你的编码体验注入活力！提供鼠标拖尾特效、打字特效、光标拖尾特效、窗口平滑动画和精美的渐变主题效果。
 
@@ -12,14 +12,16 @@
 
 ### 📋 前置要求
 
-> ⚠️ 重要：使用本扩展前，必须安装 [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) 插件，否则无法加载任何视觉效果！
+> ⚠️ 重要：使用本扩展前，必须安装**一个**注入后端插件，否则无法加载任何视觉效果：[Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css)（默认）或 [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style)（实验性）。
 
-这是因为 VS Code 扩展本身无法直接修改编辑器样式，需要通过 Custom CSS and JS Loader 来注入自定义 CSS 和 JavaScript。
+这是因为 VS Code 扩展本身无法直接修改编辑器样式，需要通过第三方加载器插件来注入自定义 CSS 和 JavaScript。用哪一个由设置项 `visionSmashCode.loader` 决定。
+
+加载器**不是**本扩展的硬依赖：所选后端缺失时会弹出带「安装扩展」动作的错误提示，而不是静默失效。
 
 ### 📝 启用步骤
 
 1. 打开 VS Code 扩展商店
-2. **安装依赖插件**： `Custom CSS and JS Loader`（发布者：be5invis）
+2. **安装一个注入后端**：`Custom CSS and JS Loader`（发布者：be5invis，默认）—— 或 `Custom UI Style`（发布者：subframe7536，实验性）
 3. **安装本扩展**：搜索安装 `Vision Smash Code`（发布者：gentlybeing）
 4. **打开设置**
    - 按 `Ctrl+Shift+P` (Windows/Linux) 或 `Cmd+Shift+P` (macOS) 打开命令面板
@@ -36,11 +38,31 @@
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
+| `visionSmashCode.loader` | `be5invis` | 由哪个扩展注入 CSS/JS：`be5invis`（Custom CSS and JS Loader）或 `custom-ui-style`（Custom UI Style，**实验性**） |
 | `visionSmashCode.base.cursorEnabled` | `false` | 启用光标拖尾特效 |
 | `visionSmashCode.base.animationsEnabled` | `false` | 启用窗口动画效果 |
 | `visionSmashCode.base.gradientEnabled` | `false` | 启用渐变主题效果 |
 | `visionSmashCode.base.word` | `false` | 启用打字文字爆炸效果 |
 | `visionSmashCode.base.mouse` | `false` | 启用鼠标尾迹效果 |
+
+### 🔀 选择注入后端
+
+| `visionSmashCode.loader` | 后端 | 状态 |
+| --- | --- | --- |
+| `be5invis`（默认） | [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) | 稳定 —— 行为与之前版本完全一致 |
+| `custom-ui-style` | [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style) | **实验性** —— 可随时切回 |
+
+**切换会做什么：** 先把本扩展的条目从旧后端的注入列表里移除（只按目标文件名匹配），再写入新后端。**你自己在这些列表里的其它条目不会被修改或删除。** 两步各自独立报错——清理失败不会阻断新后端的写入。若新后端未安装，不会写入任何配置，而是弹出带「安装扩展」动作的错误提示，当前后端继续正常工作。
+
+**为什么 `custom-ui-style` 是实验性的？** 该后端会把本地 `.js` 当作 **ES module** 加载（`<script type="module">`），而本扩展的效果脚本是经典脚本；它接受的对象条目（`{ "type": "js", "url": ... }`）只允许 `https://` 地址，本地文件只能用 `file://` 字符串注入。两个 CSS 类效果预期可用；**三个 JS 类效果（光标拖尾、鼠标尾迹、文字爆炸）可能不生效**。维护者无法在真实 VS Code 上验证，因此把它作为「愿意尝新的用户可自行验证的开关」提供，默认仍是 `be5invis`。
+
+**人工验证步骤**（维护者**未**验证，请自行尝试）：
+
+1. 安装并启用 `Custom UI Style`（本仓库按其 0.7.2 已发布版本核实过配置键与条目规则）。
+2. 把 `visionSmashCode.loader` 设为 `custom-ui-style`，按提示重载窗口。
+3. 检查 `settings.json`：`custom-ui-style.external.imports` 里应出现已启用效果的 `file://…` 条目；`vscode_custom_css.imports` 里本扩展的条目应已被移除，**你自己的条目必须仍然在**。
+4. 打开 `Developer: Toggle Developer Tools` → Console，观察 JS 效果是否加载（ESM 可能因严格模式 / 作用域差异报错）。
+5. 切回 `be5invis`，确认效果恢复。
 
 ### ❓ VS Code 提示"已损坏"？
 

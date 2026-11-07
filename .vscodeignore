@@ -1,6 +1,10 @@
+# --- 开发环境与工具链 ---
 .vscode/**
 .vscode-test/**
 test/**
+test-support/**
+**/src/test/**
+**/*.test.js
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
@@ -8,3 +12,28 @@ vsc-extension-quickstart.md
 **/*.map
 **/eslint.config.mjs
 **/.vscode-test.*
+
+# --- 已内联进 dist/extension.cjs 的宿主逻辑 ---
+# 只排除打包时被内联的源码目录。注意：不要排除整个 src/，
+# 下面五个资产目录必须原样分发——运行时按 context.extensionPath + src/... 解析它们。
+src/install/**
+src/common/**
+
+# 宿主入口同样已被内联进 dist/extension.cjs；仓库里保留源码用于开发与 lint。
+# manifest 的 main / exports 均指向 dist/extension.cjs。
+extension.js
+
+# 构建脚本与 bundler 只用于本地与发版流程，不随扩展分发
+build.mjs
+
+# --- 开发与文档资源 ---
+# README 与 README-zh 中的截图均通过 raw.githubusercontent.com 绝对地址引用，
+# 因此截图无需随扩展分发。扩展图标是 manifest 必需资产，必须保留。
+images/**
+!images/icon.png
+docs/**
+AGENTS.md
+package-lock.json
+
+# --- 模板残留 ---
+Hello, World.txt
