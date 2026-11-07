@@ -48,7 +48,8 @@ test("Base Settings 必须排在最前，总开关优先于子开关出现在设
     /^Base Settings/,
     `排第一的分组应是 Base Settings，实际是「${sorted[0].title}」`,
   );
-  // Base Settings 里必须真的是那五个总开关 + loader，而不是被塞进别的键
+  // Base Settings 里必须真的是那五个总开关，而不是被塞进别的键
+  // （注入后端设置项已按 ADR-0004 删除，这里不再包含它）。
   const baseKeys = Object.keys(sorted[0].properties ?? {});
   for (const key of ["cursor", "animations", "word", "gradient", "mouse"]) {
     assert.ok(
