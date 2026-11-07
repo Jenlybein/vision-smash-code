@@ -204,3 +204,41 @@ test("切换后端：目标路径为空的效果不会导致误删（空路径�
   // 空路径的 basename 是空串，绝不能因此把条目清空。
   assert.deepEqual(previous.log.writes, []);
 });
+
+// ---------------------------------------------------------------------------
+// 顺序是契约：旧后端的重载必须排在新后端写入之后
+//
+// 用户实测：从 custom-ui-style 切回 be5invis 后所有效果都不生效，必须把总开关取消再勾回
+// 才生效。原因是旧后端的重载会立刻重建 workbench.html 并重启窗口，把后面那次「写新后端 +
+// 新后端重载」一起吞掉。这里把顺序钉死，防止以后有人「顺手」把重载挪回清理那一步。
+// ---------------------------------------------------------------------------
+
+test("切换顺序：先清理旧后端，再写新后端，最后才刷新旧后端", async () => {
+  const order = [];
+
+  const previous = {
+    readImports: () => ["file:///x/src/gradient-theme/gradient-theme.css"],
+    writeImports: async () => {
+      order.push("clean-old");
+    },
+    reload: () => {
+      order.push("reload-old");
+    },
+  };
+
+  const flush = async () => {
+    order.push("flush-new");
+  };
+
+  await switchLoader({
+    previous,
+    ourPaths: ["C:\\ext\\src\\gradient-theme\\gradient-theme.css"],
+    flush,
+  });
+
+  assert.deepEqual(
+    order,
+    ["clean-old", "flush-new", "reload-old"],
+    `顺序错误：旧后端的重载排到了新后端写入之前（${JSON.stringify(order)}）`,
+  );
+});

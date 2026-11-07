@@ -25,6 +25,9 @@ import { removeOwnedEntries } from "../common/import-paths.js";
  * - 重载旧后端：只有真的改动了旧后端的列表才调用它的重载命令。理由是两个后端都把内容
  *   **内联写进 workbench.html**，光删配置条目不会撤掉已经注入的内容；不刷新的话，
  *   切换后旧后端的效果会继续生效（双份注入），让"切过去验证"失去意义。
+ *   **顺序是契约的一部分**：旧后端的重载会立刻重建 workbench.html 并重启窗口，因此它必须
+ *   排在新后端写入（`flush`）**之后**。放在之前会把新后端的配置写入与它自己的重载一起吞掉，
+ *   用户看到的现象就是"切过去之后效果全都不生效，直到手动重新勾选一次"。
  *   重载失败不阻断新后端（例如旧后端已卸载时命令会不存在）。
  * - 本模块不 import `vscode`：`previous` / `flush` 都由调用方注入，因此可被 `node --test`
  *   直接覆盖。
@@ -54,7 +57,12 @@ export async function switchLoader({
   const ours = ourPaths.filter((p) => typeof p === "string" && p.length > 0);
 
   // 1. 旧后端：只移除指向本扩展资产路径的条目（basename 相同但目录不符的一律保留）。
-  //    读、写、重载各自独立失败域。
+  //    读、写各自独立失败域。
+  //
+  //    **注意重载不在这里做**：见下面第 3 步。旧后端的重载会立刻重建 workbench.html，
+  //    在它之后再写新后端，那次写入（以及新后端自己的重载）会被窗口重启吞掉。
+  let cleanedOldList = false;
+
   if (previous) {
     let current = null;
     try {
@@ -70,25 +78,32 @@ export async function switchLoader({
       if (cleaned.length !== current.length) {
         try {
           await previous.writeImports(cleaned);
+          cleanedOldList = true;
         } catch (error) {
           report(`清理旧注入后端失败（写回注入列表）：${messageOf(error)}`);
-        }
-
-        // 已注入的内容不会因为删条目而消失，需要旧后端自己刷新一次。
-        try {
-          previous.reload();
-        } catch (error) {
-          report(`刷新旧注入后端失败：${messageOf(error)}`);
         }
       }
     }
   }
 
-  // 2. 新后端：无论第 1 步成败都执行。
+  // 2. 新后端：无论第 1 步成败都执行。必须在任何重载之前完成——
+  //    它是"切过去之后效果要能用"的唯一保障。
   try {
     await flush();
   } catch (error) {
     report(`写入新注入后端失败：${messageOf(error)}`);
+  }
+
+  // 3. 最后才刷新旧后端。两个后端都把内容**内联写进 workbench.html**，光删配置条目
+  //    不会撤掉已经注入的内容；但这一步会触发窗口重启，所以必须排在"新后端写入"之后，
+  //    否则新后端的条目与它自己的重载都会被这次重启吞掉——表现为"切换后效果全都不生效，
+  //    直到用户重新勾选一次"。
+  if (cleanedOldList) {
+    try {
+      previous.reload();
+    } catch (error) {
+      report(`刷新旧注入后端失败：${messageOf(error)}`);
+    }
   }
 
   return { errors };

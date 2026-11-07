@@ -104,7 +104,44 @@ const STALE_DIR = "gentlybeing.vision-smash-code-1.2.0";
 const STALE_URI = `file:///C:/Users/me/.vscode/extensions/${STALE_DIR}/src/neovide-cursor/neovide-cursor.js`;
 
 // ---------------------------------------------------------------------------
-// 激活时清理「其它」后端
+// 切换后端：切回 be5invis 后，新后端必须拿到启用效果的条目
+//
+// 现象（用户实测）：从 custom-ui-style 切回 Custom CSS and JS Loader 后，所有效果都不生效，
+// 必须把对应总开关取消勾选再勾回去才生效。
+// ---------------------------------------------------------------------------
+
+test("切换后端：切回 be5invis 时新后端立刻拿到已启用效果的条目", async () => {
+  const { dir } = makeExtensionDir();
+
+  stub.reset({
+    installed: true,
+    availableIds: [
+      "be5invis.vscode-custom-css",
+      "subframe7536.custom-ui-style",
+    ],
+    config: {
+      "visionSmashCode.loader": "custom-ui-style",
+      "visionSmashCode.base.cursor": true,
+    },
+  });
+
+  activate({ subscriptions: [], extensionPath: dir });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  // 用户在设置界面把后端切回 be5invis。
+  stub.setConfig("visionSmashCode.loader", "be5invis");
+  stub.fireConfigChange("visionSmashCode.loader");
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const writes = stub.log.updates.filter((entry) => entry.section === "vscode_custom_css");
+  assert.ok(writes.length > 0, "切回后必须往 be5invis 写入注入列表");
+  assert.match(
+    JSON.stringify(writes[writes.length - 1].value),
+    /neovide-cursor/,
+    `新后端应拿到已启用效果的条目，实际写入：${JSON.stringify(writes[writes.length - 1].value)}`,
+  );
+});
 //
 // 现象（用户实测）：关掉主题渐变、重启后渐变仍在。两个加载器同时注入了——改设置只更新
 // 当前选中的后端，另一个还在注入旧产物，于是"关不掉"也"改了没反应"。
