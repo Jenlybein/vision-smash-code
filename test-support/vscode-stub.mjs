@@ -43,6 +43,8 @@ let installed = false;
 // 指定哪些扩展 id 可用；为 null 时退回到「installed 决定一切」。
 // 用于区分「当前后端装了、另一个后端没装」这种只有多后端才需要表达的场面。
 let availableIds = null;
+// 让 `executeCommand`（重载命令）以 rejected promise 结束，模拟"该后端没有这个命令"。
+let failCommands = false;
 // `onDidChangeConfiguration` 注册的回调。
 let changeHandler = null;
 
@@ -59,10 +61,12 @@ export function reset({
   config: nextConfig = {},
   installed: nextInstalled = false,
   availableIds: nextAvailableIds = null,
+  failCommands: nextFailCommands = false,
 } = {}) {
   config = { ...nextConfig };
   installed = nextInstalled;
   availableIds = nextAvailableIds;
+  failCommands = nextFailCommands;
   changeHandler = null;
   log.errors.length = 0;
   log.informations.length = 0;
@@ -127,6 +131,9 @@ export const window = {
 export const commands = {
   executeCommand(...args) {
     log.commands.push(args);
+    if (failCommands) {
+      return Promise.reject(new Error(`command '${args[0]}' not found`));
+    }
     return Promise.resolve(undefined);
   },
   registerCommand() {

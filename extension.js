@@ -152,7 +152,31 @@ async function flushChanges() {
 
   setTimeout(() => {
     vscode.window.showInformationMessage("效果修改成功！点击确认进行重载");
-    activeLoader.reload();
+
+    // 重载失败必须让用户看见。
+    //
+    // 两种后端的重载命令名不同（be5invis 是 `extension.updateCustomCSS`，
+    // custom-ui-style 是 `custom-ui-style.reload`），版本不匹配时命令可能根本不存在。
+    // 以前这里是裸调用：命令缺失抛出的异常落进 timer 里被吞掉，用户只看到"修改成功"，
+    // 然后发现界面毫无变化——配置其实写进去了，但内联进 workbench.html 的旧内容
+    // 没有被重新生成，于是"关掉的效果还在、重启也不消失"。
+    const reportReloadFailure = (error) => {
+      const detail = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(
+        `重载注入后端失败（${activeLoader.id}）：${detail}。` +
+          "配置已经写入，但界面内容需要后端重新生成才会变化；" +
+          "可以手动执行该后端的重载命令，或切换一次后端来强制重建。",
+      );
+    };
+
+    try {
+      const pending = activeLoader.reload();
+      if (pending && typeof pending.then === "function") {
+        pending.then(undefined, reportReloadFailure);
+      }
+    } catch (error) {
+      reportReloadFailure(error);
+    }
   }, 400);
 }
 

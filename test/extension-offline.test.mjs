@@ -283,3 +283,40 @@ test("激活时对账：列表已与当前安装目录一致时完全静默（�
   );
   assert.equal(stub.log.informations.length, 0, "无差异时不应打扰用户");
 });
+
+// ---------------------------------------------------------------------------
+// 重载失败必须可见
+//
+// 现象（用户实测）：后端为 custom-ui-style 时关掉主题渐变，重启后渐变仍在。
+// 配置确实被写入了，但内联进 workbench.html 的旧内容要靠后端的重载命令重新生成；
+// 若该命令不存在或失败，以前是裸调用，异常落进 timer 里被吞掉，用户只看到"修改成功"。
+// ---------------------------------------------------------------------------
+
+test("重载命令失败时必须报错，而不是只显示「修改成功」", async () => {
+  const { dir } = makeExtensionDir();
+
+  stub.reset({
+    installed: true,
+    availableIds: ["be5invis.vscode-custom-css"],
+    failCommands: true, // 模拟后端没有 extension.updateCustomCSS 这个命令
+    config: {
+      "visionSmashCode.loader": "be5invis",
+      "visionSmashCode.cursor.tailColor": "#ABCDEF",
+    },
+  });
+
+  activate({ subscriptions: [], extensionPath: dir });
+  stub.fireConfigChange("visionSmashCode.cursor.tailColor");
+
+  // flushChanges 在 400ms 后才重载；留足余量。
+  await new Promise((resolve) => setTimeout(resolve, 600));
+
+  assert.ok(
+    stub.log.errors.some((message) => message.includes("重载注入后端失败")),
+    `重载失败必须让用户看见，实际只记录了：${JSON.stringify(stub.log.errors)}`,
+  );
+  assert.ok(
+    stub.log.errors.some((message) => message.includes("be5invis")),
+    "错误信息里应点名是哪个后端失败",
+  );
+});
