@@ -12,25 +12,30 @@
  * 除此之外的"哪些路径该被注入""下一轮状态是什么""提示什么文案"都不在这里，
  * 它们分别在 `refresh-plan.js`（纯函数接缝）与各执行层里。本模块不含业务判断。
  *
+ * ## 只有一个后端（ADR-0004）
+ *
+ * 历史上这里同时声明过 `be5invis`（Custom CSS and JS Loader）与 Custom UI Style，
+ * 由设置项 `visionSmashCode.loader` 选择。ADR-0004 决定只保留 Custom UI Style：
+ * 两个后端都会改写安装目录下**同一个** `workbench.html` 并各自维护备份，互相污染，
+ * 而 `be5invis` 没有提供还原命令，污染无法从我们这侧修复。因此设置项、注册表、
+ * 切换逻辑一并删除，本模块只剩一份声明。
+ *
  * ## Interface（调用者为正确使用必须知道的一切）
  *
- * - `selectLoader({ vscode, settingValue })` 按设置值挑后端，并**先**检测后端是否可用：
- *   - `{ ok: true, adapter }`：所选后端的适配器。
+ * - `resolveLoader({ vscode })` 检测后端是否可用：
+ *   - `{ ok: true, adapter }`：可用的适配器。
  *   - `{ ok: false, message, extensionId }`：后端未安装 / 未启用。`message` 是可展示的
- *     安装指引（含扩展 id 与退回默认后端的提示）。此时调用方**不得**向该后端的配置键
- *     写入任何东西——没有人会消费它。
- *   - 设置值未知（手改 `settings.json`、拼错）时回退到默认后端，不让整个扩展失效。
+ *     安装指引（含扩展 id）。此时调用方**不得**向该后端的配置键写入任何东西，
+ *     也**不得**往磁盘写生成结果——没有人会消费它们（`extension.js` 的 `loader = null`）。
  *   - 可用性只回答"装了没"：`vscode.extensions.getExtension(id)` 能拿到对象即视为可用。
  *     不判断 `isActive`——后端按 `onStartupFinished` 自行激活，激活时机不属于本层。
  *     检测能力本身缺失或抛错时按"可用"处理（fail-open）：宁可让后端在消费时自己报错，
  *     也不要把一个装好的环境误判成未安装而彻底停掉效果。
- * - `createLoaderAdapter({ vscode, loader })` 返回一个适配器对象。
+ * - `createLoaderAdapter({ vscode })` 返回一个适配器对象。
  *   - `vscode`：**必须注入**——本模块不 import `vscode` 全局，因此可以被 `node --test`
  *     直接加载，并用假对象覆盖全部行为。
- *   - `loader`：加载器差异声明，省略时用默认后端 `DEFAULT_LOADER`（`be5invis`）。
- *     换后端 / 加第三个后端 = 加一份声明并登记到 `LOADERS`，适配层与业务代码都不需要改。
  * - 适配器暴露五个成员：
- *   - `id`：该适配器对应后端的 id（字符串，来自声明）。用于判断"后端有没有真的变"。
+ *   - `id`：该适配器对应后端的 id（字符串，来自声明）。用于错误文案里点名后端。
  *   - `readImports() => string[]`：读出整份注入列表并**归一化**成稳定字符串 id；
  *     配置未设置时返回空数组（不是 `undefined`）。无法归一化的条目（用户手写的非法值）
  *     不会出现在结果里，但也不会因此被删除——见 `writeImports`。
@@ -46,7 +51,7 @@
  * - 本层不吞异常：`getConfiguration` / `update` / `executeCommand` / `Uri.file` 抛出的
  *   错误原样冒泡给调用方。错误该如何展示是执行层的决定。
  *
- * ## 条目形态事实（2026-11-07 按上游源码核实，见 ADR-0003）
+ * ## 条目形态事实（2026-11-07 按上游源码核实，见 ADR-0003 / ADR-0004）
  *
  * `subframe7536.custom-ui-style` 的 `external.imports` 接受两种条目：
  * - 字符串（`file://` / `https://` 开头，以 `.css` / `.js` 结尾）：本地文件只有这一种
@@ -57,15 +62,13 @@
  *   用它只会被静默丢弃——这正是 #22 工单正文里那条建议不成立的地方。
  *
  * 结论：本扩展注入的本地文件在该后端上只能是 `file://` 字符串，JS 会被当作 ESM 执行。
- * 这是该后端被标注为实验性的直接原因，也写进了 ADR-0003 与 README 的人工验证步骤。
+ * 这是 ADR-0004 里那条"三个 JS 效果未经真实编辑器验证"的由来。
  */
 
 /**
  * 条目形态的**共享默认实现**（评审 F11）。
  *
- * 两个真实后端的本地文件条目都是 `file://` 字符串，`toEntry` / `fromId` 逐字相同；
- * `toId` 的"字符串分支"与"省略 `toId` 时的默认实现"也逐字相同。三处各抄一份的话，
- * 改一处就会漂移，因此只在声明里引用这里的函数。
+ * 声明里的 `toEntry` / `toId` / `fromId` 逐字引用这里的函数，避免各抄一份后漂移。
  */
 
 /** 本地路径 → 条目字符串视图（稳定 id）。`vscode.Uri.file(path).toString()`。 */
@@ -86,43 +89,15 @@ const stringOrObjectUrlToId = (entry) =>
     : null);
 
 /**
- * 默认后端：`be5invis.vscode-custom-css`（Custom CSS & JS Loader）。
+ * 唯一后端：`subframe7536.custom-ui-style`（Custom UI Style）。
  *
- * 这份声明就是"我们的默认加载器是它"这件事的全部。字段一律与重构前逐字节一致，
- * 改动任何一条都会体现在行为上，因此 `test/loader-adapter.test.mjs` 对每条都有断言。
- *
- * 条目形态：`file://` URI 字符串数组（与重构前逐字节一致）。
- */
-export const CUSTOM_CSS_LOADER = {
-  // 后端 id：就是设置项 `visionSmashCode.loader` 的取值，也是注册表的键。
-  id: "be5invis",
-  // 展示名与扩展 id：只用于可用性检测与安装指引。
-  displayName: "Custom CSS and JS Loader",
-  extensionId: "be5invis.vscode-custom-css",
-  // 注入列表所在的配置节与属性名。
-  configSection: "vscode_custom_css",
-  importsProperty: "imports",
-  // 修改配置后由该命令触发重载。
-  reloadCommand: "extension.updateCustomCSS",
-  // 该加载器把注入列表当作 URI 字符串数组，因此路径转条目就是
-  // `vscode.Uri.file(path).toString()`——与重构前 extension.js 的 toImportUri 逐字节一致。
-  toEntry: filePathToEntry,
-  // 读到的条目 → 稳定字符串 id。该后端只认字符串，别的一律归一化不了。
-  toId: stringToId,
-  // 由 id 造出条目。该后端的条目就是那个字符串本身，因此是恒等。
-  fromId: idToEntry,
-};
-
-/**
- * 新后端：`subframe7536.custom-ui-style`（Custom UI Style）。
- *
- * 差异同样只在这份声明里：配置节 / 属性名 / 重载命令 / 扩展 id 各一条，
- * 外加"读到的条目可能不是字符串"这一条归一化规则。
+ * 这份声明就是"我们的后端是它"这件事的全部。字段一律与 ADR-0003 核实到的上游事实
+ * 一致，`test/loader-backend.test.mjs` 对每条都有断言。
  *
  * 条目形态：
  * - 写入时产出的是 `file://` URI 字符串（`toEntry` / `fromId`）。不用对象形态，
  *   因为该后端的对象条目 `url` 只接受 `https://`，`file://` 会被静默丢弃——见
- *   文件头的「条目形态事实」与 ADR-0003。
+ *   文件头的「条目形态事实」。
  * - 读取时既要认字符串，也要认对象（用户自己的远端条目可能是 `{ type, url }`）。
  *   对象的 id 取 `url`，写回时原样保留对象形态（见 `writeImports` 的条目重建逻辑）。
  */
@@ -141,62 +116,35 @@ export const CUSTOM_UI_STYLE_LOADER = {
 };
 
 /**
- * 后端注册表：设置值 → 后端声明。
+ * 检测唯一后端是否可用。
  *
- * 加第三个后端 = 在这里加一条登记 + 在 `package.json` 的枚举里加一个取值，
- * 业务代码（`extension.js` 与各执行层）一行都不用改。
- */
-export const LOADERS = {
-  [CUSTOM_CSS_LOADER.id]: CUSTOM_CSS_LOADER,
-  [CUSTOM_UI_STYLE_LOADER.id]: CUSTOM_UI_STYLE_LOADER,
-};
-
-/**
- * 默认后端。
- *
- * **必须是 `be5invis`**：设置项未设置时用它，既有用户升级后行为因此完全不变。
- */
-export const DEFAULT_LOADER = CUSTOM_CSS_LOADER;
-
-// 设置项键名：只在这条错误文案里用到（"切回默认后端"的指引）。
-const LOADER_SETTING = "visionSmashCode.loader";
-
-/**
- * 按设置值挑一个后端，并检测它是否可用。
+ * 这是"后端不可用时怎么办"的接口：调用方拿到 `ok: false` 时既不写配置、也不写盘，
+ * 只把 `message` 展示给用户（并可用 `extensionId` 跳转扩展市场）。
  *
  * @param {{
- *   vscode: { extensions?: { getExtension: Function }, workspace: object, commands: object, ConfigurationTarget: object, Uri: object },
- *   settingValue?: string,
+ *   vscode: { extensions?: { getExtension: Function } },
  * }} deps
  * @returns {{
- *   ok: true, loaderId: string, adapter: ReturnType<typeof createLoaderAdapter>,
+ *   ok: true, adapter: ReturnType<typeof createLoaderAdapter>,
  * } | {
- *   ok: false, loaderId: string, extensionId: string, message: string,
+ *   ok: false, extensionId: string, message: string,
  * }}
  */
-export function selectLoader({ vscode, settingValue }) {
-  // 未知取值（手改 settings.json / 拼错）回退到默认后端：坏设置不该让整个扩展失效。
-  const loader = LOADERS[settingValue] ?? DEFAULT_LOADER;
-
-  if (!isExtensionAvailable(vscode, loader.extensionId)) {
+export function resolveLoader({ vscode }) {
+  if (!isExtensionAvailable(vscode, CUSTOM_UI_STYLE_LOADER.extensionId)) {
     return {
       ok: false,
-      loaderId: loader.id,
-      extensionId: loader.extensionId,
+      extensionId: CUSTOM_UI_STYLE_LOADER.extensionId,
       message:
-        `所选注入后端「${loader.displayName}」未安装或未启用（${loader.extensionId}）。` +
-        `请在扩展面板安装并启用它，然后重新加载窗口。` +
-        // 选中默认后端时，"切回默认后端"是废话，只给安装指引。
-        (loader === DEFAULT_LOADER
-          ? ""
-          : `也可以把设置 ${LOADER_SETTING} 切回 ${DEFAULT_LOADER.id}。`),
+        `注入后端「${CUSTOM_UI_STYLE_LOADER.displayName}」未安装或未启用` +
+        `（${CUSTOM_UI_STYLE_LOADER.extensionId}）。` +
+        `请在扩展面板安装并启用它，然后重新加载窗口。`,
     };
   }
 
   return {
     ok: true,
-    loaderId: loader.id,
-    adapter: createLoaderAdapter({ vscode, loader }),
+    adapter: createLoaderAdapter({ vscode }),
   };
 }
 
@@ -217,21 +165,16 @@ function isExtensionAvailable(vscode, extensionId) {
 }
 
 /**
- * 按一份加载器声明造出适配器。
- *
- * 声明里 `toId` / `fromId` 省略时按"条目就是字符串"处理：这样只关心配置键与命令的
- * 后端（例如测试里的假想后端）也能用一份最短的声明接入。默认实现与两份真实后端声明
- * 引用的是同一批函数（`stringToId` / `idToEntry`），不存在第二份实现可供漂移。
+ * 按后端的声明造出适配器。
  *
  * @param {{
  *   vscode: { workspace: { getConfiguration: Function }, commands: { executeCommand: Function }, ConfigurationTarget: object, Uri: { file: Function } },
- *   loader?: typeof CUSTOM_CSS_LOADER,
  * }} deps
  */
-export function createLoaderAdapter({ vscode, loader = DEFAULT_LOADER }) {
-  // 省略时用共享默认实现（与两份声明引用的是同一批函数，不会漂移）。
-  const toId = loader.toId ?? stringToId;
-  const fromId = loader.fromId ?? idToEntry;
+export function createLoaderAdapter({ vscode }) {
+  const loader = CUSTOM_UI_STYLE_LOADER;
+  const toId = loader.toId;
+  const fromId = loader.fromId;
 
   // 读配置里**原始**的条目数组（可能是字符串，也可能是对象）。
   // 非数组（用户手写坏了）按空列表处理：planRefresh 的契约只接受字符串数组。
