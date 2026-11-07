@@ -8,7 +8,7 @@
     "url": "https://github.com/Jenlybein/vision-smash-code"
   },
   "type": "module",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "keywords": [
     "cursor",
     "animation",
@@ -520,7 +520,7 @@
               },
               "initialVelocityX": {
                 "type": "number",
-                "default": 1.0,
+                "default": 1,
                 "description": "Horizontal spread range\n  横向扩散范围"
               },
               "lifeDecay": {
