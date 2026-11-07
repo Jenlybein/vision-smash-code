@@ -320,3 +320,26 @@ test("重载命令失败时必须报错，而不是只显示「修改成功」",
     "错误信息里应点名是哪个后端失败",
   );
 });
+test("清理其它后端后必须请求它重新打补丁（否则残留内容关不掉）", async () => {
+  const { dir } = makeExtensionDir();
+
+  stub.reset({
+    installed: true,
+    config: {
+      "visionSmashCode.loader": "be5invis",
+      "visionSmashCode.base.cursor": true,
+      "custom-ui-style.external.imports": [OUR_GRADIENT],
+    },
+  });
+
+  activate({ subscriptions: [], extensionPath: dir });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  // 只删配置条目不够：两个后端都把内容内联写进 workbench 文件，已经写进去的部分
+  // 不会因为配置变了而消失，重启也不会。必须让它按新列表重新打一次补丁。
+  assert.deepEqual(
+    stub.log.commands.map((args) => args[0]),
+    ["custom-ui-style.reload"],
+    `清理其它后端之后必须请求它重新生成，实际执行了：${JSON.stringify(stub.log.commands)}`,
+  );
+});

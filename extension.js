@@ -247,6 +247,16 @@ async function dropEntriesFromOtherBackends() {
       if (remaining.length === current.length) continue;
       await other.writeImports(remaining);
       cleaned = true;
+
+      // 只删配置条目是不够的：两个后端都会把内容**内联写进 workbench 文件**，
+      // 已经写进去的部分不会因为配置变了而消失，重启也不会——重启加载的仍是被改过的文件。
+      // 必须让它按新的（已不含本扩展条目的）列表重新打一次补丁，残留才会被清掉。
+      // 这正是"切走之后旧后端注入的效果还在、关都关不掉"的成因。
+      try {
+        await other.reload();
+      } catch {
+        // 重载失败不阻断其它后端，也不阻断当前后端；用户仍可通过后端自己的命令强制重建。
+      }
     } catch {
       // 单个后端清理失败不能阻断其它后端；当前后端的写入照旧进行。
     }
@@ -254,7 +264,7 @@ async function dropEntriesFromOtherBackends() {
 
   if (cleaned) {
     vscode.window.showInformationMessage(
-      "检测到本扩展的条目同时存在于另一个注入后端，已移除，避免两个后端同时注入。请重载窗口使其生效。",
+      "检测到本扩展的条目同时存在于另一个注入后端，已移除并请求它重新生成界面内容，避免两个后端同时注入。请重载窗口使其生效。",
     );
   }
 }
