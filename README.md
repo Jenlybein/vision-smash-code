@@ -19,6 +19,8 @@ VS Code extensions cannot directly modify editor styles, so a third-party loader
 
 The loader is **not** a hard dependency of this extension: if the backend you selected is missing, you get an error with an install action instead of the extension silently doing nothing.
 
+> 🆕 **New in 1.2.0 — the injection backend is now selectable.** You are no longer locked to one loader. `be5invis` (Custom CSS and JS Loader) stays the default, so **if you were already using this extension, nothing changes for you** — your existing setup keeps working exactly as before. The new option is `custom-ui-style` (Custom UI Style), currently **experimental**; see [Choosing the injection backend](#-choosing-the-injection-backend).
+
 ### 📝 Enable Steps
 
 1. Open VS Code Extension Marketplace
@@ -30,7 +32,7 @@ The loader is **not** a hard dependency of this extension: if the backend you se
 5. **Enable features:** Toggle the features you want in the settings page
 6. **Apply changes**
    - After changing config, the extension will prompt you to reload VS Code
-   - Click **Confirm** in the `Custom CSS and JS Loader` prompt
+   - Click **Confirm** in the prompt shown by your chosen backend (`Custom CSS and JS Loader` for `be5invis`, `Custom UI Style` for `custom-ui-style`)
    - Wait for VS Code to restart and apply all effects
 
 ![restart](https://raw.githubusercontent.com/Jenlybein/vision-smash-code/refs/heads/main/images/restart.png)
@@ -53,7 +55,7 @@ The loader is **not** a hard dependency of this extension: if the backend you se
 | `be5invis` (default) | [Custom CSS and JS Loader](https://marketplace.visualstudio.com/items?itemName=be5invis.vscode-custom-css) | Stable — behavior is identical to previous releases |
 | `custom-ui-style` | [Custom UI Style](https://marketplace.visualstudio.com/items?itemName=subframe7536.custom-ui-style) | **Experimental** — switch back at any time |
 
-**What switching does:** this extension's entries are removed from the previous backend's import list (matched by the target file name only) and added to the new one. **Your own entries in those lists are never modified or deleted.** Both steps report errors independently — a failed cleanup does not block writing to the new backend. If the new backend is not installed, nothing is written and you get an error with an install action; your current backend keeps working.
+**What switching does:** this extension removes **only its own** entries from the previous backend's import list and adds them to the new one. An entry counts as "its own" only if its path ends in `src/<this extension's asset directory>/<asset file>` — so a file you added yourself is left alone even if its name happens to match. **Your own entries in those lists are never modified or deleted.** Both steps report errors independently — a failed cleanup does not block writing to the new backend. If the new backend is not installed, nothing is written and you get an error with an install action; your current backend keeps working.
 
 **Why is `custom-ui-style` experimental?** That backend loads local `.js` files as **ES modules** (`<script type="module">`), while the effects in this extension are classic scripts, and its object-style entries (`{ "type": "js", "url": ... }`) only accept `https://` URLs, so local files can only be injected as `file://` strings. The two CSS effects are expected to work; **the three JS effects (cursor trail, mouse trail, typing explosion) may not**. The maintainer could not verify real VS Code behavior, so this backend is offered as a switch for users who want to try it — `be5invis` stays the default.
 
